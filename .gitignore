@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.next/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+storage/
+coverage/
+
+# Generated Prisma client (run: bun run --cwd apps/api db:generate)
+apps/api/src/generated/
+
+# Compiled worker (apps/api, `bun run worker`)
+dist-worker/

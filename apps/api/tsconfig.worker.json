@@ -1,0 +1,7 @@
+{
+  // The worker compiles into its own folder, so `bun run api` and `bun run worker` never delete each other's output.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist-worker"
+  }
+}

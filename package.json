@@ -1,0 +1,20 @@
+{
+  "name": "ai-knowledge-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "eval"
+  ],
+  "scripts": {
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:logs": "docker compose logs -f",
+    "api": "bun run --cwd apps/api start:dev",
+    "web": "bun run --cwd apps/web dev",
+    "test": "bun run --cwd apps/api test",
+    "seed": "bun run --cwd apps/api seed",
+    "smoke:gemini": "bun run --cwd apps/api smoke:gemini",
+    "worker": "bun run --cwd apps/api worker",
+    "samples": "bun run --cwd apps/api samples"
+  }
+}

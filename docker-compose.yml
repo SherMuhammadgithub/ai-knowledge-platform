@@ -1,0 +1,46 @@
+name: ai-knowledge-platform
+
+# Host port for Postgres is 5433 because 5432 is already used on the dev machine.
+services:
+  postgres:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_USER: akp
+      POSTGRES_PASSWORD: akp_dev_password
+      POSTGRES_DB: akp
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U akp -d akp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.1
+    ports:
+      - "6333:6333" # REST
+      - "6334:6334" # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  redis:
+    image: redis:8.8.2-alpine
+    # BullMQ needs noeviction, otherwise Redis may drop queued jobs under memory pressure.
+    command: ["redis-server", "--maxmemory-policy", "noeviction", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  redis_data:

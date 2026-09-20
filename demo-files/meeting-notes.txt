@@ -1,0 +1,5 @@
+Product meeting, 12 March
+
+Decided to ship the beta in June.
+Maria owns the onboarding flow. Tom owns billing.
+Next review is on 26 March.
