@@ -3,7 +3,7 @@
 Everything here is fake data for local development. The accounts use the reserved `.test` domain and a shared demo password. The seed script refuses to run in production or against a remote database.
 
 Built so far: sign up, sign in, workspaces, roles, members, tenant isolation, document upload and storage, automatic reading of documents (text extraction), cutting the text into chunks, dark mode, mobile layout.
-Not built yet: embeddings, search, chat, citations. A Ready document has its text and its chunks stored, but nothing searches them yet.
+Not built yet: a search box, chat, citations. A Ready document is searchable by meaning from a script (check R), not yet from the screen.
 
 ## 1. Start it
 
@@ -25,6 +25,7 @@ bun run web       # http://localhost:3000
 
 # once, in any terminal, to load the demo data (safe to repeat, see section 5):
 bun run seed
+bun run --cwd apps/api embed:backfill   # makes the sample documents searchable (sends the fictional sample text to Gemini, about 9 texts)
 ```
 
 Open http://localhost:3000. If Docker is not running yet, `bun run infra:up` first.
@@ -146,8 +147,8 @@ Try each one and read the message next to the file name. Nothing is stored for a
 
 ### N. Documents are read automatically
 Needs the worker running (`bun run worker`).
-1. Sign in as `alice@acme.test`. The five documents show their state: four are **Ready** (text files and the Word file show a character count) and "Scanned receipt (sample).pdf" is **Failed**, with the reason "This PDF has no readable text. It may be a scan or only pictures. Scanned documents are not supported yet." and a Retry button.
-2. Upload `demo-files/facilities-guide.pdf` from the project folder. Without refreshing, its status goes **Uploaded**, then **Processing** (spinning icon), then **Ready** with "3 pages". For a small file this takes a few seconds.
+1. Sign in as `alice@acme.test`. The five documents show their state: four are **Ready** (text files and the Word file show a character count, and after the backfill in section 1, "searchable") and "Scanned receipt (sample).pdf" is **Failed**, with the reason "This PDF has no readable text. It may be a scan or only pictures. Scanned documents are not supported yet." and a Retry button.
+2. Upload `demo-files/facilities-guide.pdf` from the project folder. Without refreshing, its status goes **Uploaded**, then **Processing** (spinning icon), then **Indexing** (spinning icon, "Creating embeddings"), then **Ready** with "3 pages, 3 chunks, searchable". For a small file this takes a few seconds.
 3. Click the file name. A panel opens with the text read from the file, page by page. Check that the header "Hartwell Offices Internal" and the footer "Page 1 of 3" are gone, and that page 1 says "quarter" in one piece. In the PDF that word is split across a line as "quar-" and "ter".
 4. Upload `demo-files/travel-policy.docx` and `meeting-notes.txt`. Both become Ready with a character count. Click one and read its text.
 
@@ -164,13 +165,23 @@ Needs the worker running (`bun run worker`).
 
 ### Q. Chunks
 Needs the worker restarted after pulling Milestone 5 code (`Ctrl+C`, then `bun run worker`), and the new migration applied (`bun run --cwd apps/api db:migrate`). Documents that were Ready before that get chunks from `bun run --cwd apps/api chunks:rebuild`. `bun run seed` does it for the demo documents.
-1. Sign in as `alice@acme.test`. Ready rows now say, for example, "644 characters, 1 chunk".
-2. Upload `demo-files/equipment-policy.txt` (run `bun run samples` first if the file is missing). Without refreshing, it goes to Ready with "5,578 characters, 4 chunks".
+1. Sign in as `alice@acme.test`. Ready rows say, for example, "644 characters, 1 chunk, searchable" (or "not searchable yet" before the backfill).
+2. Upload `demo-files/equipment-policy.txt` (run `bun run samples` first if the file is missing). Without refreshing, it goes to Ready with "5,578 characters, 4 chunks, searchable".
 3. Click the file name, then the **Chunks** tab. You see "4 chunks, about 386 tokens each" and four blocks. Chunk 1 has no repeat note. Chunks 2 to 4 say "Starts with N characters repeated from chunk N-1." and their first sentences are tinted.
 4. Scroll to where chunk 1 ends. Its last two sentences (about business travel) are the tinted first two sentences of chunk 2. That repeat is the overlap: a question that lands on the boundary still finds a whole sentence.
 5. Each chunk ends where a paragraph ends, never in the middle of a word. (The naive `fixed` chunker would cut mid-word. Compare in `docs/learning/milestones/M05-chunking-and-embeddings/checkpoint-b-results.md`.)
 6. Open the Chunks tab of a small document, for example the Employee handbook: one chunk, no overlap note.
 7. Chunks are separate per workspace: as `erin@globex.test`, opening `/api/documents/<an Acme document id>/chunks` says "Document not found".
+
+### R. Embeddings and search
+Needs the worker running with the Milestone 5 code (restart it after pulling), and `embed:backfill` run once (section 1). Sends only fictional text to Gemini.
+1. Upload `demo-files/equipment-policy.txt`. Watch its row go **Uploaded**, **Indexing** (spinner, sometimes "Embedding 16 of 25 chunks" for larger files) and **Ready**, "5,578 characters, 4 chunks, searchable". A small file takes a few seconds.
+2. Open it, then the **Chunks** tab. The summary says "Every chunk has a vector" and each chunk says "embedded".
+3. In a terminal: `bun run --cwd apps/api search`. Type `1` for Acme Corp, then a question in your own words, for example `How much money can I claim for setting up my desk at home?`. The equipment policy comes first, with a score around 0.7 and the next ones around 0.65. Press Enter on an empty line to stop.
+4. Ask a question the documents cannot answer, for example `What is the policy on pets in the office?`. It still returns results, with scores close to the right answers' scores. Scores are relative, and nothing here says "I don't know" yet.
+5. Delete the equipment policy. Its vectors are deleted too: `docker exec -i ai-knowledge-platform-postgres-1 psql -U akp -d akp -c "SELECT count(*) FROM chunk_embeddings"` is back to where it was before the upload.
+6. The cache: run `bun run --cwd apps/api chunks:rebuild`. Every Ready row now says "not searchable yet". Then `bun run --cwd apps/api embed:backfill`: it sends 0 texts to Gemini and serves every chunk from the cache, and the rows say "searchable" again.
+7. Stop the worker (Ctrl+C) and upload a small file: it waits in **Uploaded**. Start the worker again: it goes through Processing, Indexing and Ready, because the job waited in the queue.
 
 ## 4. Automated tests
 
@@ -178,7 +189,7 @@ Needs the worker restarted after pulling Milestone 5 code (`Ctrl+C`, then `bun r
 bun run test
 ```
 
-161 tests run against a separate `akp_test` database (and a separate queue), never the dev ones. They cover sign up and sign in, forged and tampered cookies, roles, cross-workspace access, the immediate removal in check G, the workspace-scoped database client, file type detection, storage safety, duplicate and oversized uploads, and who may delete what. Also text extraction from real generated PDF and Word files, every cleaning rule, the zip-bomb guard, the queue with a real worker, retries, the sweeper, and a job that names the wrong workspace. Also the chunkers (including a test on 300 random pages), chunks saved and replaced together with the pages, and chunks kept separate per workspace.
+203 tests run against a separate `akp_test` database (and a separate queue), never the dev ones. They cover sign up and sign in, forged and tampered cookies, roles, cross-workspace access, the immediate removal in check G, the workspace-scoped database client, file type detection, storage safety, duplicate and oversized uploads, and who may delete what. Also text extraction from real generated PDF and Word files, every cleaning rule, the zip-bomb guard, the queue with a real worker, retries, the sweeper, and a job that names the wrong workspace. Also the chunkers (including a test on 300 random pages), chunks saved and replaced together with the pages, and chunks kept separate per workspace. Also the token limiter, vector storage, the embedding step with a fake provider (progress, the cache, retries, errors that can never work, model change, deleting vectors with documents), search isolation, and both workers end to end. No test calls a real embedding provider.
 
 ## 5. Reset the demo data
 
@@ -186,13 +197,13 @@ bun run test
 bun run seed
 ```
 
-This deletes and recreates only the seven demo accounts and the workspaces they own, so it also undoes anything you changed (removed Dave, added Heidi, created "Side project", uploaded or deleted documents). It also clears those workspaces' uploaded files and writes the eight sample documents again, reading each one through the real pipeline. Other accounts you registered yourself in check B are left alone, except workspaces owned by a demo account.
+This deletes and recreates only the seven demo accounts and the workspaces they own, so it also undoes anything you changed (removed Dave, added Heidi, created "Side project", uploaded or deleted documents). It also clears those workspaces' uploaded files and writes the eight sample documents again, reading each one through the real pipeline. They have chunks but no vectors until you run `embed:backfill` again. Other accounts you registered yourself in check B are left alone, except workspaces owned by a demo account.
 
 If you want a completely empty database instead, `docker compose down -v` and start again from section 1. That deletes all data in the containers.
 
 ## 6. What comes next
 
-Milestone 5 continues with embeddings: each chunk becomes a vector of 768 numbers, with a cache, a token-aware rate limit and a working meaning search. Then Milestone 6 stores the vectors in Qdrant and measures which chunking works best.
+Milestone 6 stores the vectors in Qdrant, adds filtering and a small evaluation (about 20 questions), and measures which chunking works best (naive, paragraph, heading-aware) with hit rate and reciprocal rank. Milestone 7 adds the answer: the retrieved chunks are given to the generation model.
 
 ## 7. Stopping things properly
 

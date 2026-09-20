@@ -23,7 +23,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 };
 
 export type DocumentType = "PDF" | "DOCX" | "TXT";
-export type DocumentStatus = "UPLOADED" | "PROCESSING" | "READY" | "FAILED";
+export type DocumentStatus = "UPLOADED" | "PROCESSING" | "INDEXING" | "READY" | "FAILED";
 
 export type DocumentItem = {
   id: string;
@@ -38,6 +38,8 @@ export type DocumentItem = {
   charCount: number | null;
   /** Pieces the text was cut into for search (0 until the document is Ready, or if it has not been chunked yet). */
   chunkCount: number;
+  /** How many of those chunks have a vector under the current embedding setup. Ready with fewer means "not searchable yet". */
+  embeddedCount: number;
   processedAt: string | null;
   createdAt: string;
   uploadedBy: { id: string; name: string | null; email: string } | null;
@@ -57,6 +59,8 @@ export type DocumentChunk = {
   tokenEstimate: number;
   /** How many characters at the start of this chunk repeat the end of the previous chunk on the same page. */
   overlapWithPrevious: number;
+  /** Whether this chunk has a vector under the current embedding setup. */
+  embedded: boolean;
 };
 
 export type DocumentChunksResponse = {
@@ -68,6 +72,7 @@ export type DocumentChunksResponse = {
 export const STATUS_LABEL: Record<DocumentStatus, string> = {
   UPLOADED: "Uploaded",
   PROCESSING: "Processing",
+  INDEXING: "Indexing",
   READY: "Ready",
   FAILED: "Failed",
 };

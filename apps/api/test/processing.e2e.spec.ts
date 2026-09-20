@@ -65,14 +65,14 @@ async function aliceWorkspace() {
 }
 
 describe("DocumentProcessorService: one document at a time", () => {
-  it("turns a PDF into Ready with its pages, without the header and footer", async () => {
+  it("turns a PDF into Indexing with its pages, without the header and footer", async () => {
     const { wid } = await aliceWorkspace();
     const id = await storeDocument(wid, "PDF", await handbookPdf(), "handbook.pdf");
 
-    expect(await ctx.processor.process({ documentId: id, workspaceId: wid })).toBe("ready");
+    expect(await ctx.processor.process({ documentId: id, workspaceId: wid })).toBe("indexing");
 
     const doc = await documentRow(id);
-    expect(doc).toMatchObject({ status: "READY", statusDetail: null, pageCount: 3 });
+    expect(doc).toMatchObject({ status: "INDEXING", statusDetail: null, pageCount: 3 });
     expect(doc.processedAt).toBeInstanceOf(Date);
     const pages = await pagesOf(id);
     expect(pages.map((p) => p.pageNumber)).toEqual([1, 2, 3]);
@@ -87,8 +87,8 @@ describe("DocumentProcessorService: one document at a time", () => {
     const { wid } = await aliceWorkspace();
     const docx = await storeDocument(wid, "DOCX", makeDocx(["Remote work guidelines", "Up to three days a week with a manager's agreement."]));
     const txt = await storeDocument(wid, "TXT", fixtures.txt("Full-time employees get 25 days of paid annual leave."));
-    expect(await ctx.processor.process({ documentId: docx, workspaceId: wid })).toBe("ready");
-    expect(await ctx.processor.process({ documentId: txt, workspaceId: wid })).toBe("ready");
+    expect(await ctx.processor.process({ documentId: docx, workspaceId: wid })).toBe("indexing");
+    expect(await ctx.processor.process({ documentId: txt, workspaceId: wid })).toBe("indexing");
     expect((await pagesOf(docx))).toHaveLength(1);
     expect((await pagesOf(txt))[0].text).toBe("Full-time employees get 25 days of paid annual leave.");
   });
@@ -96,7 +96,7 @@ describe("DocumentProcessorService: one document at a time", () => {
   it("is safe to run twice: a repeat delivery does not change anything", async () => {
     const { wid } = await aliceWorkspace();
     const id = await storeDocument(wid, "PDF", await handbookPdf());
-    expect(await ctx.processor.process({ documentId: id, workspaceId: wid })).toBe("ready");
+    expect(await ctx.processor.process({ documentId: id, workspaceId: wid })).toBe("indexing");
     const before = await pagesOf(id);
 
     expect(await ctx.processor.process({ documentId: id, workspaceId: wid })).toBe("skipped");
@@ -112,7 +112,7 @@ describe("DocumentProcessorService: one document at a time", () => {
     });
     await ctx.prisma.document.update({ where: { id }, data: { status: "PROCESSING" } });
 
-    expect(await ctx.processor.process({ documentId: id, workspaceId: wid })).toBe("ready");
+    expect(await ctx.processor.process({ documentId: id, workspaceId: wid })).toBe("indexing");
     const pages = await pagesOf(id);
     expect(pages).toHaveLength(3);
     expect(pages.some((p) => p.text.startsWith("stale"))).toBe(false);
@@ -185,7 +185,7 @@ describe("DocumentProcessorService: one document at a time", () => {
       read.mockRejectedValueOnce(new Error("disk hiccup"));
 
       await expect(ctx.processor.process({ documentId: id, workspaceId: wid }, { number: 1, max: 3 })).rejects.toThrow();
-      expect(await ctx.processor.process({ documentId: id, workspaceId: wid }, { number: 2, max: 3 })).toBe("ready");
+      expect(await ctx.processor.process({ documentId: id, workspaceId: wid }, { number: 2, max: 3 })).toBe("indexing");
     });
   });
 });
@@ -216,7 +216,7 @@ describe("through the queue and a real worker", () => {
       return d?.status === status ? d : false;
     });
 
-  it("an uploaded PDF goes from Uploaded to Ready by itself, and its text can be read", async () => {
+  it("an uploaded PDF goes from Uploaded to Indexing by itself (only the reading worker runs here), and its text can be read", async () => {
     const { agent: a } = await aliceWorkspace();
     startWorker();
 
@@ -224,12 +224,12 @@ describe("through the queue and a real worker", () => {
     expect(res.status).toBe(201);
     expect(res.body.status).toBe("UPLOADED"); // the upload returns before any reading happens
 
-    const ready = await waitForStatus(a, res.body.id, "READY");
-    expect(ready).toMatchObject({ pageCount: 3, statusDetail: null });
+    const indexing = await waitForStatus(a, res.body.id, "INDEXING");
+    expect(indexing).toMatchObject({ pageCount: 3, statusDetail: null });
 
     const pages = await a.get(`/documents/${res.body.id}/pages`);
     expect(pages.status).toBe(200);
-    expect(pages.body.document.status).toBe("READY");
+    expect(pages.body.document.status).toBe("INDEXING");
     expect(pages.body.pages.map((p: { pageNumber: number }) => p.pageNumber)).toEqual([1, 2, 3]);
     expect(pages.body.pages[0].text).toContain("first quarter of the next year.");
   });
@@ -253,7 +253,7 @@ describe("through the queue and a real worker", () => {
     const { agent: a } = await aliceWorkspace();
     startWorker();
     const res = await upload(a, fixtures.txt("A short note that has enough characters."), "note.txt");
-    await waitForStatus(a, res.body.id, "READY");
+    await waitForStatus(a, res.body.id, "INDEXING");
     expect((await a.post(`/documents/${res.body.id}/retry`)).status).toBe(409);
   });
 
@@ -330,7 +330,7 @@ describe("the sweeper rescues documents nobody is working on", () => {
       concurrency: 1,
       timeoutSeconds: 60,
     });
-    await waitFor(async () => (await documentRow(neverQueued)).status === "READY" && (await documentRow(workerDied)).status === "READY");
+    await waitFor(async () => (await documentRow(neverQueued)).status === "INDEXING" && (await documentRow(workerDied)).status === "INDEXING");
     expect((await documentRow(fresh)).status).toBe("UPLOADED"); // not stuck, not swept
   });
 

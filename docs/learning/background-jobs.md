@@ -77,6 +77,19 @@ The API adds the job right after the upload. But Redis can be down at that momen
 - No way to notice a job that never ran.
 - Taking the workspace from anywhere but the server when the job is created.
 
+## Added in Milestone 5: a second queue for embeddings
+
+Reading a file takes well under a second. Creating vectors for it can take minutes on the free tier, because the provider allows only about 30,000 tokens per minute. So embedding is a second step on its own queue:
+
+- **Two queues, two workers, one process.** Reading runs two documents at a time. Embedding runs one at a time, because the limiter lives in this process and a long embedding must not block reading.
+- **The hand-over:** the reading step saves the text and chunks, marks the document Indexing, and only then queues the embedding job. If Redis is down at that moment the document stays Indexing and the sweeper queues it.
+- **Progress keeps a job alive.** The embedding step writes "Embedding 16 of 25 chunks" after every group, which also moves the document's update time, so the sweeper does not mistake a slow document for a stuck one.
+- **Retries continue, they do not restart.** Vectors are saved after every group and the chunks remember which ones have a vector. A retry sends only what is missing.
+- **Errors that can never work** (a refused request, a bad key, an unknown model) fail the document at once with a reason. Temporary errors wait 30 seconds and grow.
+- **Safe to run twice:** an already Ready document is skipped. Two jobs for one document cannot double anything.
+
+Files: `apps/api/src/embedding/`, `apps/api/src/queue/`, `apps/api/src/worker/document.worker.ts`, `apps/api/test/indexing.e2e.spec.ts`.
+
 ## Interview questions
 
 1. Why use a queue and a separate worker instead of processing during the upload request?

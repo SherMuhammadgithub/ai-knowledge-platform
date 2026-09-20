@@ -12,6 +12,9 @@ import {
 import type { WorkspaceAuth } from "../auth/auth.types";
 import { CHUNK_STRATEGIES, type ChunkStrategy } from "../chunking";
 import { ENV } from "../config/config.module";
+import { EMBEDDINGS } from "../embedding/embedding.tokens";
+import type { EmbeddingClient } from "../llm/types";
+import type { TenantDb } from "../prisma/tenant-client";
 import type { Env } from "../config/env";
 import { TenantPrismaService } from "../prisma/tenant-prisma.service";
 import { DocumentQueueService } from "../queue/document-queue.service";
@@ -56,7 +59,9 @@ type Row = {
   _count: { chunks: number };
 };
 
-const toDto = (r: Row) => ({
+// embeddedCount: how many of the chunks have a vector under the current embedding setup (counted separately,
+// because a relation count can only carry one filter).
+const toDto = (r: Row, embeddedCount = 0) => ({
   id: r.id,
   name: r.originalName,
   type: r.type,
@@ -66,6 +71,7 @@ const toDto = (r: Row) => ({
   pageCount: r.pageCount,
   charCount: r.charCount,
   chunkCount: r._count.chunks,
+  embeddedCount,
   processedAt: r.processedAt,
   createdAt: r.createdAt,
   uploadedBy: r.uploadedBy,
@@ -81,6 +87,7 @@ export class DocumentsService {
     private readonly tenant: TenantPrismaService,
     private readonly queue: DocumentQueueService,
     @Inject(STORAGE) private readonly storage: StorageService,
+    @Inject(EMBEDDINGS) private readonly embeddings: EmbeddingClient,
     @Inject(ENV) env: Env,
   ) {
     this.strategy = env.CHUNK_STRATEGY;
@@ -88,13 +95,28 @@ export class DocumentsService {
   }
 
   async list(actor: WorkspaceAuth) {
-    const rows = await this.tenant
-      .for(actor)
-      .document.findMany({
-        orderBy: { createdAt: "desc" },
-        select: this.select,
-      });
-    return rows.map(toDto);
+    const db = this.tenant.for(actor);
+    const rows = await db.document.findMany({
+      orderBy: { createdAt: "desc" },
+      select: this.select,
+    });
+    const counts = await this.embeddedCounts(db, rows.map((r) => r.id));
+    return rows.map((r) => toDto(r, counts.get(r.id) ?? 0));
+  }
+
+  /** Chunks with a vector under the current setup, per document. A different model or wording counts as none. */
+  private async embeddedCounts(db: TenantDb, ids: string[]): Promise<Map<string, number>> {
+    if (ids.length === 0) return new Map();
+    const rows = await db.documentChunk.groupBy({
+      by: ["documentId"],
+      where: { documentId: { in: ids }, strategy: this.strategy, embeddedWith: this.embeddings.setupId },
+      _count: { _all: true },
+    });
+    return new Map(rows.map((r) => [r.documentId, r._count._all]));
+  }
+
+  private async dtoOf(db: TenantDb, row: Row) {
+    return toDto(row, (await this.embeddedCounts(db, [row.id])).get(row.id) ?? 0);
   }
 
   async upload(actor: WorkspaceAuth, file: UploadedFileData | undefined) {
@@ -158,7 +180,7 @@ export class DocumentsService {
     }
 
     await this.enqueue(actor.workspaceId, id);
-    return toDto(row);
+    return this.dtoOf(db, row);
   }
 
   /** A failed document can be tried again, by whoever may delete it. */
@@ -181,7 +203,7 @@ export class DocumentsService {
       select: this.select,
     });
     await this.enqueue(actor.workspaceId, id);
-    return toDto(row);
+    return this.dtoOf(db, row);
   }
 
   /** The text the worker extracted, page by page. Makes the pipeline visible: what was actually read. */
@@ -197,12 +219,13 @@ export class DocumentsService {
       orderBy: { pageNumber: "asc" },
       select: { pageNumber: true, text: true },
     });
-    return { document: toDto(doc), pages };
+    return { document: await this.dtoOf(db, doc), pages };
   }
 
   /**
    * The chunks of a document, in order. Makes the chunking visible: exactly what will be embedded.
    * `overlapWithPrevious` is how many characters at the start of a chunk repeat the end of the previous chunk on the same page.
+   * `embedded` says whether the chunk has a vector under the current embedding setup.
    */
   async chunks(actor: WorkspaceAuth, id: string, requested?: string) {
     const strategy = this.parseStrategy(requested);
@@ -222,17 +245,22 @@ export class DocumentsService {
         endChar: true,
         text: true,
         tokenEstimate: true,
+        embeddedWith: true,
       },
     });
-    const chunks = rows.map((c, i) => {
+    const chunks = rows.map(({ embeddedWith, ...c }, i) => {
       const before = rows[i - 1];
       const shared =
         before && before.pageNumber === c.pageNumber
           ? before.endChar - c.startChar
           : 0;
-      return { ...c, overlapWithPrevious: Math.max(0, shared) };
+      return {
+        ...c,
+        overlapWithPrevious: Math.max(0, shared),
+        embedded: embeddedWith === this.embeddings.setupId,
+      };
     });
-    return { document: toDto(doc), strategy, chunks };
+    return { document: await this.dtoOf(db, doc), strategy, chunks };
   }
 
   private parseStrategy(requested?: string): ChunkStrategy {
@@ -255,11 +283,37 @@ export class DocumentsService {
     if (!doc) throw new NotFoundException("Document not found");
     this.assertCanManage(actor, doc.uploadedById);
 
-    await db.document.delete({ where: { id } }); // its pages go with it (cascade)
+    // Vectors are data derived from the document's text, so they go too. Collect the fingerprints first,
+    // because the chunks disappear with the document.
+    const hashes = [
+      ...new Set(
+        (await db.documentChunk.findMany({ where: { documentId: id }, select: { contentHash: true } })).map(
+          (c) => c.contentHash,
+        ),
+      ),
+    ];
+
+    await db.document.delete({ where: { id } }); // its pages and chunks go with it (cascade)
+    await this.removeOrphanVectors(db, hashes);
     // Row first, file second. A failure here leaves a harmless orphan file, never a row pointing at nothing.
     await this.storage.delete(doc.storageKey).catch((err) => {
       this.log.warn(`Could not delete file ${doc.storageKey}: ${String(err)}`);
     });
+  }
+
+  /**
+   * Deletes the stored vectors for these texts, except where another chunk in the workspace still uses the same text
+   * (two documents can share a paragraph, and share its vector).
+   */
+  private async removeOrphanVectors(db: TenantDb, hashes: string[]) {
+    if (hashes.length === 0) return;
+    const stillUsed = new Set(
+      (await db.documentChunk.findMany({ where: { contentHash: { in: hashes } }, select: { contentHash: true } })).map(
+        (c) => c.contentHash,
+      ),
+    );
+    const orphans = hashes.filter((h) => !stillUsed.has(h));
+    if (orphans.length) await db.chunkEmbedding.deleteMany({ where: { contentHash: { in: orphans } } });
   }
 
   // Admins and owners manage any document. A member manages only their own uploads.

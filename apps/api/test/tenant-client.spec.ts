@@ -214,6 +214,25 @@ describe("forWorkspace against the real database", () => {
     expect((await ctx.prisma.documentChunk.findFirstOrThrow({ where: { text: "planted" } })).workspaceId).toBe(wa);
   });
 
+  it("scopes the vector table the same way: another workspace's vectors are invisible, untouchable and cannot be planted", async () => {
+    const { wa, wb } = await twoWorkspacesWithDocuments();
+    const vector = (workspaceId: string, contentHash: string) => ({ workspaceId, contentHash, setupId: "m|768|w", vector: new Uint8Array(8) });
+    await ctx.prisma.chunkEmbedding.create({ data: vector(wa, "hash-a") });
+    const vectorB = await ctx.prisma.chunkEmbedding.create({ data: vector(wb, "hash-b") });
+
+    const db = forWorkspace(ctx.prisma, wa);
+    expect((await db.chunkEmbedding.findMany()).map((v) => v.contentHash)).toEqual(["hash-a"]);
+    expect(await db.chunkEmbedding.findUnique({ where: { id: vectorB.id } })).toBeNull();
+    expect((await db.chunkEmbedding.deleteMany({ where: { id: vectorB.id } })).count).toBe(0);
+    expect(await ctx.prisma.chunkEmbedding.count({ where: { workspaceId: wb } })).toBe(1);
+
+    await db.chunkEmbedding.create({ data: vector(wb, "planted") }); // names the other workspace
+    expect((await ctx.prisma.chunkEmbedding.findFirstOrThrow({ where: { contentHash: "planted" } })).workspaceId).toBe(wa);
+    // The same text in two workspaces is two rows, not one shared cache entry.
+    await db.chunkEmbedding.create({ data: vector(wb, "hash-b") });
+    expect(await ctx.prisma.chunkEmbedding.count({ where: { contentHash: "hash-b" } })).toBe(2);
+  });
+
   it("scopes the queries inside a transaction too, and a failure rolls everything back", async () => {
     const { wa, wb, docA } = await twoWorkspacesWithDocuments();
     const db = forWorkspace(ctx.prisma, wa);

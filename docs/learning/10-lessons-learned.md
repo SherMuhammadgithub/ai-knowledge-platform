@@ -64,3 +64,10 @@ Things that went wrong or surprised us, kept short. Newest at the bottom. Each o
 - **Assert once, not once per character.** A property test with one `expect()` per character took 54 seconds and timed out. Collecting the failures and asserting once took 3.5 seconds.
 - **A highlight has to be checked in both themes.** The overlap tint was clear in light mode and nearly invisible in dark. A quick screenshot in each caught it.
 - **Overlap has a cost you can measure.** With whole-sentence overlap, a page of sentences longer than the overlap size gets no overlap. The tests document it, so it is a known limit and not a surprise.
+- **A test can pass because the code is right, or because the case never needed the code.** "Search only finds Ready documents" used a document with no vectors, so removing the filter changed nothing. A deliberate break showed it. The test now uses a document that has vectors but is not Ready yet.
+- **The cache key has to hold everything that changes the answer.** For vectors that is the text, the model, the dimensions and the instruction wording. Leaving one out mixes incompatible vectors with no error.
+- **Save after every unit of paid work.** Embedding in groups of 16, with the vectors and the progress saved after each group, means a failure costs one group, the screen can show real progress, and a retry continues.
+- **A changed meaning has to reach the old data.** Ready now means searchable. Documents that were Ready before show "not searchable yet" instead of silently looking finished.
+- **Fake the provider in every test app.** It keeps tests fast and free, and means no test can send text to a real service.
+- **Scores are relative.** A question with no answer scored higher than a correct one (0.68 against 0.64). Design refusal and evaluation around that, not around a cutoff.
+- **Interactive beats quoting on Windows.** `bun run <script> "words with spaces"` broke because of the space in the user folder. A script that asks for its input avoids the problem.

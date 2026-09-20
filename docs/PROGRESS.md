@@ -1,7 +1,7 @@
 # Progress
 
-**Current milestone:** 5 (Chunking and embeddings), in progress from 2026-09-20. Milestone 4 is closed (browser check passed). Quizzes for Milestones 1 to 4 are unanswered in `docs/learning/QUIZ.md` and do not block anything (M1 question 1 is worth answering before Milestone 5 ends).
-**Next action:** Milestone 5 Checkpoint B is done. The user restarts the worker (`bun run worker`) so new uploads are chunked, reads `docs/learning/milestones/M05-chunking-and-embeddings/checkpoint-b-results.md`, answers its four questions (including what to do about resume files before anything is sent to Gemini), and says go for Checkpoint C.
+**Current milestone:** 5 (Chunking and embeddings) is built and checked (2026-09-20). Quizzes for Milestones 1 to 5 are unanswered in `docs/learning/QUIZ.md` and do not block anything. Milestone 6 (Qdrant retrieval and the mini evaluation) is next, on the user's go.
+**Next action:** the user reads `docs/learning/milestones/M05-chunking-and-embeddings/checkpoint-c-results.md` and says whether to plan Milestone 6 (concepts and plan first, as agreed). Their quiz answers are optional.
 
 ## Milestones
 
@@ -9,7 +9,7 @@
 - [x] 2. Auth and workspaces (quiz pending)
 - [x] 3. Document upload and storage (quiz pending)
 - [x] 4. Processing worker (quiz pending)
-- [ ] 5. Chunking and embeddings (in progress, see its folder in `docs/learning/milestones/`)
+- [x] 5. Chunking and embeddings (quiz pending)
 - [ ] 6. Qdrant retrieval + mini eval
 - [ ] 7. Basic RAG
 - [ ] 8. Citations
@@ -128,9 +128,22 @@ Checkpoint B (done, real worker path still to confirm after the user restarts th
 - [x] Web: Chunks tab (with overlap shown as tinted text and a caption), chunk count in the row. Checked in a browser in light and dark, at 390 px, with keyboard
 - [x] 161 API tests (32 new). 10 deliberate breaks all caught. Typecheck and lint clean in both apps
 - [x] Dev data: chunks cut for the 10 existing Ready documents with the rebuild script
-- [ ] Real worker in the browser: needs the worker restarted (the running one started before this code)
+- [x] Real worker in the browser: confirmed with the restarted worker (see Checkpoint C)
+
+Checkpoint C (done):
+- [x] Cache and vector table `chunk_embeddings` (per workspace, keyed by text fingerprint and setup id), `embedded_with` on chunks, status `INDEXING` (migration `embeddings`)
+- [x] Token-per-minute limiter (`characters / 3`, `GEMINI_EMBEDDING_TPM`), provider calls split by token budget, budget spent on every attempt including retries, setup id in the client
+- [x] Embedding as its own job on a second queue with its own worker (one job at a time): cache first, groups of 16, saved after each group, progress text, temporary errors retried, errors that can never work (400, 401, 403, 404) fail at once with a reason
+- [x] Status flow Uploaded, Processing, Indexing, Ready. Ready means searchable. Sweeper covers Indexing. Old Ready documents show "not searchable yet" until the backfill
+- [x] Deleting a document deletes its vectors, except ones another document still uses
+- [x] Plain search: `bun run --cwd apps/api search` (interactive) and `embed:backfill` (sample documents only by default, everything else listed as skipped)
+- [x] UI: Indexing badge with progress, "searchable" in rows, vector status per chunk. Checked in a browser in dark mode and at 390 px
+- [x] 203 API tests (42 new), 18 deliberate breaks all caught, typecheck and lint clean in both apps
+- [x] Real runs: 9 texts sent to Gemini for the sample documents, then 0 sent and 9 from the cache after a full chunk rebuild. Live upload of two files through the user's worker ready in about 9 seconds. Vector count back to 9 after deleting them
+- [x] Topic notes 01 to 03 and the Milestone 5 quiz written
 
 Known gaps, on purpose:
+- Embedding limiter lives in one process (Milestone 13). The sweeper can queue a slow embedding twice (harmless). Search compares every vector of the workspace (Qdrant in Milestone 6). No search box in the app yet (Milestone 7). Only the configured chunking strategy is embedded. No per-document "do not send to AI" switch (Milestone 12 or 13). The user's two resume files are Ready but not searchable, on purpose.
 - Overlap is whole sentences only. When every sentence is longer than the overlap size a chunk gets none.
 - A sentence that crosses a page break is cut at the page break.
 - The Chunks tab shows only the configured strategy. Comparing strategies in the app is planned for the start of Milestone 6.
@@ -195,3 +208,7 @@ All quiz questions and exercises live in `docs/learning/QUIZ.md`, with a place f
 - 2026-09-20 (M5): The `bg-muted` tint was clear in light and almost invisible in dark. Look at both themes before calling a highlight done.
 - 2026-09-20 (M5): The worker is not a watch process, so it kept running the old code after the change. Compare a process's start time with the time of the last code change before trusting it.
 - 2026-09-20 (M5): The first token-count script sent hand-uploaded resume text to the free tier. See the rule in `CLAUDE.md` about what may be sent to a provider.
+- 2026-09-20 (M5): A deliberate-break run found a weak test of mine: "search only finds Ready documents" used a document with no vectors, so the filter was never needed. The test now uses a document with vectors that is not Ready yet. Ask what a test would look like if the code were wrong, then make it fail.
+- 2026-09-20 (M5): `bun run <script> "words with spaces"` breaks on Windows when the user folder has a space. An interactive script (asks for input) avoids it.
+- 2026-09-20 (M5): Every test app uses a fake embedding provider. A test that could call the real one would send text out and depend on quota.
+- 2026-09-20 (M5): Changing what a status means (Ready now means searchable) touches the seed, the screen, the tests and old data. Old Ready documents get an honest "not searchable yet" instead of a silent change.

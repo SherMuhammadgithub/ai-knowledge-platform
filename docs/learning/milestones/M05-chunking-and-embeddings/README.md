@@ -1,6 +1,6 @@
 # Milestone 5: chunking and embeddings
 
-**Status:** in progress, started 2026-09-20. Checkpoints A and B done. Waiting for your answers in `checkpoint-b-results.md` before Checkpoint C.
+**Status:** built and checked (2026-09-20). Only your quiz and exercises are open, and nothing waits on them.
 **Time budget:** about 12 hours (from `docs/PLAN.md`).
 
 ## Goal
@@ -25,6 +25,7 @@ Qdrant, filtering, top-K tuning and the chunking experiment come in Milestone 6.
 
 ## Results so far
 
+- [`checkpoint-c-results.md`](checkpoint-c-results.md): the embedding pipeline, the real runs (cache proof, live upload, search), tests, costs, known gaps.
 - [`checkpoint-b-results.md`](checkpoint-b-results.md): what was built, the two chunkers compared on the same text, what you can see in the app, costs found, tests, and four questions for you.
 - [`checkpoint-a-results.md`](checkpoint-a-results.md): the measured scores and token counts, what they mean, and three decisions for you.
 
@@ -49,12 +50,12 @@ Three checkpoints. I stop at each one, show you the result, and wait. You decide
 - [x] B4. Screen: the document shows its chunk count, and the text panel marks where chunks begin.
 
 **Checkpoint C: embeddings and a working search**
-- [ ] C1. Embedding cache table: vector, keyed by hash of (text, model, dimensions).
-- [ ] C2. Token-per-minute limiter (the 30K tokens per minute limit is the one that binds), retries with backoff, usage records.
-- [ ] C3. Embedding runs as its own job after chunking, because it can take minutes for a big document.
-- [ ] C4. Status flow becomes Uploaded, Processing, Indexing, Ready or Failed. Ready now means "searchable". Update the seed data, the screen and the tests.
-- [ ] C5. Plain search in code: embed a question, rank chunks by cosine similarity, in memory. A script that prints the top 5 with scores.
-- [ ] C6. Docs: update `PROGRESS.md`, `DEMO_GUIDE.md`, this folder, the learning notes, and add the milestone quiz.
+- [x] C1. Embedding cache table: vector, keyed by hash of (text, model, dimensions).
+- [x] C2. Token-per-minute limiter (the 30K tokens per minute limit is the one that binds), retries with backoff, usage records.
+- [x] C3. Embedding runs as its own job after chunking, because it can take minutes for a big document.
+- [x] C4. Status flow becomes Uploaded, Processing, Indexing, Ready or Failed. Ready now means "searchable". Update the seed data, the screen and the tests.
+- [x] C5. Plain search in code: embed a question, rank chunks by cosine similarity, in memory. A script that prints the top 5 with scores.
+- [x] C6. Docs: update `PROGRESS.md`, `DEMO_GUIDE.md`, this folder, the learning notes, and add the milestone quiz.
 
 ## Decisions from Checkpoint A (agreed 2026-09-20)
 
@@ -86,7 +87,15 @@ Three checkpoints. I stop at each one, show you the result, and wait. You decide
 
 `apps/api/src/chunking/`, `apps/api/src/embedding/`, `apps/api/prisma/schema.prisma` (new migrations), `apps/api/src/worker/`, `apps/api/src/queue/`, `apps/api/src/llm/gemini/`, `apps/web/src/components/documents-view.tsx` and `document-text-sheet.tsx`, `apps/api/test/`.
 
-## After the milestone
+## Topic notes (written at the end of the milestone)
+
+- [`01-llm-fundamentals.md`](01-llm-fundamentals.md): tokens, budgets and limits.
+- [`02-embeddings.md`](02-embeddings.md): embeddings, cosine similarity, the cache and the setup id, real scores.
+- [`03-chunking.md`](03-chunking.md): chunk size, overlap, the two chunkers.
+
+Quiz (6 questions) and exercises (3): `docs/learning/QUIZ.md`, section "Milestone 5".
+
+## After the milestone (what was planned)
 
 - Quiz and exercises go into `docs/learning/QUIZ.md` under "Milestone 5", and a short copy of the pointer goes here.
 - The topic notes `01-llm-fundamentals.md`, `02-embeddings.md` and `03-chunking.md` are created in this folder and linked from `docs/learning/README.md`.

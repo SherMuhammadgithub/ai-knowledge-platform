@@ -14,11 +14,11 @@ export const STALE_AFTER_MS = 5 * 60_000;
 export class SystemQueries {
   constructor(private readonly prisma: PrismaService) {}
 
-  findStaleDocuments(now: Date, limit = 100): Promise<{ id: string; workspaceId: string }[]> {
+  findStaleDocuments(now: Date, limit = 100): Promise<{ id: string; workspaceId: string; status: string }[]> {
     const staleBefore = new Date(now.getTime() - STALE_AFTER_MS);
     return this.prisma.document.findMany({
-      where: { status: { in: ["UPLOADED", "PROCESSING"] }, updatedAt: { lt: staleBefore } },
-      select: { id: true, workspaceId: true },
+      where: { status: { in: ["UPLOADED", "PROCESSING", "INDEXING"] }, updatedAt: { lt: staleBefore } },
+      select: { id: true, workspaceId: true, status: true },
       orderBy: { updatedAt: "asc" },
       take: limit,
     });

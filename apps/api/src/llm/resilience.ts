@@ -27,9 +27,50 @@ export class RateLimiter {
   }
 }
 
+/**
+ * Sliding-window limiter for TOKENS: at most `maxPerMinute` tokens in any 60s window.
+ * Embeddings are capped by tokens per minute (30K on the free tier), and that limit binds long before the request
+ * limit does: a batch of 16 chunks is one request but thousands of tokens. Waits instead of failing.
+ * In-process only, like RateLimiter. The clock and sleep are parameters so tests can run without waiting.
+ */
+export class TokenLimiter {
+  private readonly entries: { at: number; tokens: number }[] = [];
+  private used = 0;
+
+  constructor(
+    private readonly maxPerMinute: number,
+    private readonly now: () => number = Date.now,
+    private readonly wait: (ms: number) => Promise<void> = sleep,
+  ) {}
+
+  async acquire(tokens: number): Promise<void> {
+    // A request bigger than the whole budget could never fit. Let it through once the window is empty.
+    const cost = Math.min(Math.max(1, Math.ceil(tokens)), this.maxPerMinute);
+    for (;;) {
+      const now = this.now();
+      while (this.entries.length && now - this.entries[0].at >= 60_000) this.used -= this.entries.shift()!.tokens;
+      if (this.used + cost <= this.maxPerMinute) {
+        this.entries.push({ at: now, tokens: cost });
+        this.used += cost;
+        return;
+      }
+      // Wait until enough of the oldest entries have left the window to make room.
+      const needed = this.used + cost - this.maxPerMinute;
+      let freed = 0;
+      let until = now;
+      for (const entry of this.entries) {
+        freed += entry.tokens;
+        until = entry.at + 60_000;
+        if (freed >= needed) break;
+      }
+      await this.wait(Math.max(1, until - now) + 5);
+    }
+  }
+}
+
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 
-function statusOf(err: unknown): number | undefined {
+export function statusOf(err: unknown): number | undefined {
   const e = err as { status?: unknown; code?: unknown };
   if (typeof e?.status === "number") return e.status;
   if (typeof e?.code === "number") return e.code;

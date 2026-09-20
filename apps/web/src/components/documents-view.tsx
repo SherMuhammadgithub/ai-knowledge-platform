@@ -60,10 +60,14 @@ function statusLine(d: DocumentItem): string {
       d.type === "PDF"
         ? `${d.pageCount} ${d.pageCount === 1 ? "page" : "pages"}`
         : `${(d.charCount ?? 0).toLocaleString("en")} characters`;
-    return d.chunkCount > 0 ? `${size}, ${d.chunkCount} ${d.chunkCount === 1 ? "chunk" : "chunks"}` : size;
+    if (d.chunkCount === 0) return size;
+    const chunks = `${d.chunkCount} ${d.chunkCount === 1 ? "chunk" : "chunks"}`;
+    // Ready with missing vectors happens to documents read before embeddings existed, or set aside on purpose.
+    return d.embeddedCount >= d.chunkCount ? `${size}, ${chunks}, searchable` : `${size}, ${chunks}, not searchable yet`;
   }
   if (d.status === "FAILED") return d.statusDetail ?? "This document could not be read.";
   if (d.status === "PROCESSING") return "Reading the file";
+  if (d.status === "INDEXING") return d.statusDetail ?? "Creating embeddings";
   return Date.now() - new Date(d.createdAt).getTime() > SLOW_AFTER_MS ? "Taking longer than usual" : "Waiting to be read";
 }
 
@@ -71,6 +75,7 @@ function statusLine(d: DocumentItem): string {
 const STATUS_ICON: Record<DocumentStatus, { Icon: typeof Clock; className: string }> = {
   UPLOADED: { Icon: Clock, className: "text-muted-foreground" },
   PROCESSING: { Icon: LoaderCircle, className: "animate-spin text-info" },
+  INDEXING: { Icon: LoaderCircle, className: "animate-spin text-info" },
   READY: { Icon: CircleCheck, className: "text-success" },
   FAILED: { Icon: TriangleAlert, className: "text-destructive" },
 };
@@ -106,7 +111,7 @@ export function DocumentsView({
   const [view, setView] = useState<TextViewState | null>(null);
 
   // While anything is waiting or being read, look again every few seconds so the status changes by itself.
-  const inProgress = documents.some((d) => d.status === "UPLOADED" || d.status === "PROCESSING");
+  const inProgress = documents.some((d) => d.status === "UPLOADED" || d.status === "PROCESSING" || d.status === "INDEXING");
   useEffect(() => {
     if (!inProgress) return;
     const timer = setInterval(() => {

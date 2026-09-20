@@ -11,6 +11,8 @@ const schema = z.object({
   // Free-tier quotas are per model, so each client gets its own limiter (see docs/PLAN.md).
   GEMINI_GENERATION_RPM: z.coerce.number().int().positive(),
   GEMINI_EMBEDDING_RPM: z.coerce.number().int().positive(),
+  // Tokens per minute for embeddings (30K on the free tier). Counted with a cautious estimate: see src/llm/tokens.ts.
+  GEMINI_EMBEDDING_TPM: z.coerce.number().int().positive().default(30000),
   GEMINI_MAX_RETRIES: z.coerce.number().int().min(0).default(5),
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),

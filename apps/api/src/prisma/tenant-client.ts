@@ -19,7 +19,7 @@ import type { PrismaClient } from "../generated/prisma/client";
  * object returned by forWorkspace(). A test fails if a schema model with a workspaceId column is in neither
  * TENANT_MODELS nor EXEMPT_MODELS.
  */
-export const TENANT_MODELS = ["document", "documentPage", "documentChunk"] as const;
+export const TENANT_MODELS = ["document", "documentPage", "documentChunk", "chunkEmbedding"] as const;
 
 // Models that have a workspaceId column but are deliberately NOT scoped. Membership is the authorization
 // table itself: the guard and /auth/me read it across workspaces (all of one user's memberships).
@@ -94,14 +94,14 @@ function createScoped(prisma: PrismaClient, workspaceId: string) {
   };
   return prisma.$extends({
     name: "workspace-scope",
-    query: { document: scope, documentPage: scope, documentChunk: scope },
+    query: { document: scope, documentPage: scope, documentChunk: scope, chunkEmbedding: scope },
   });
 }
 
 type Scoped = ReturnType<typeof createScoped>;
 
 /** What code inside a transaction can reach: the same scoped tenant models, nothing else. */
-export type TenantTx = Pick<Scoped, "document" | "documentPage" | "documentChunk">;
+export type TenantTx = Pick<Scoped, "document" | "documentPage" | "documentChunk" | "chunkEmbedding">;
 
 export function forWorkspace(prisma: PrismaClient, workspaceId: string) {
   if (!workspaceId) throw new Error("forWorkspace needs a workspace id");
@@ -112,6 +112,7 @@ export function forWorkspace(prisma: PrismaClient, workspaceId: string) {
     document: scoped.document,
     documentPage: scoped.documentPage,
     documentChunk: scoped.documentChunk,
+    chunkEmbedding: scoped.chunkEmbedding,
     /** Several writes that succeed or fail together. The queries inside are scoped to the workspace as well. */
     transaction: <R>(work: (tx: TenantTx) => Promise<R>) => scoped.$transaction((tx) => work(tx), { timeout: 20_000 }),
   };

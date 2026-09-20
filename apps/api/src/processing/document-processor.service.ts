@@ -5,14 +5,18 @@ import { ENV } from "../config/config.module";
 import type { Env } from "../config/env";
 import type { TenantDb } from "../prisma/tenant-client";
 import { TenantPrismaService } from "../prisma/tenant-prisma.service";
+import { DocumentQueueService } from "../queue/document-queue.service";
 import type { DocumentJob } from "../queue/queue.constants";
 import { STORAGE, type StorageService } from "../storage/storage.service";
 import { PermanentProcessingError } from "./errors";
 import { type ExtractedDocument, extractDocument } from "./extract-document";
 import { DEFAULT_LIMITS, type ProcessingLimits } from "./limits";
 
-/** "ready": text saved. "failed": marked Failed with a reason. "skipped": nothing to do (deleted, or already done). */
-export type ProcessOutcome = "ready" | "failed" | "skipped";
+/**
+ * "indexing": the text and chunks are saved and the document waits for its embeddings.
+ * "failed": marked Failed with a reason. "skipped": nothing to do (deleted, or already read).
+ */
+export type ProcessOutcome = "indexing" | "failed" | "skipped";
 
 /** Which try this is. BullMQ counts attempts, this service only needs to know whether another one will follow. */
 export type Attempt = { number: number; max: number };
@@ -23,12 +27,12 @@ const TEMPORARY_FAILURE = "Processing kept failing because of a temporary proble
 const isRecordGone = (err: unknown) => ["P2025", "P2003"].includes((err as { code?: string })?.code ?? "");
 
 /**
- * Turns one uploaded file into stored text: read the file, extract and clean it, cut the pages into chunks,
- * save pages and chunks, mark it Ready.
+ * Step one of the pipeline. Turns one uploaded file into stored text: read the file, extract and clean it, cut the
+ * pages into chunks, save pages and chunks, mark the document Indexing and queue step two (embeddings).
  *
  * Safe to run twice for the same document (queues deliver at least once):
- *  - a document that is already Ready is left alone
- *  - the pages, the chunks and the Ready status are written in one transaction, replacing any earlier ones,
+ *  - a document that is already read (Indexing or Ready) is left alone
+ *  - the pages, the chunks and the Indexing status are written in one transaction, replacing any earlier ones,
  *    so a crash half way leaves nothing behind and a re-run gives the same result
  *
  * The workspace comes from the job and every query goes through the scoped client.
@@ -43,6 +47,7 @@ export class DocumentProcessorService {
   constructor(
     private readonly tenant: TenantPrismaService,
     @Inject(STORAGE) private readonly storage: StorageService,
+    private readonly queue: DocumentQueueService,
     @Inject(ENV) env: Env,
   ) {
     this.limits = { ...DEFAULT_LIMITS, maxPages: env.MAX_PDF_PAGES, timeoutMs: env.PROCESSING_TIMEOUT_SECONDS * 1000 };
@@ -61,14 +66,15 @@ export class DocumentProcessorService {
       this.log.warn(`Document ${job.documentId} not found in workspace ${job.workspaceId}. Skipping.`);
       return "skipped";
     }
-    if (doc.status === "READY") return "skipped";
+    if (doc.status === "READY" || doc.status === "INDEXING") return "skipped"; // already read
 
     try {
       await db.document.update({ where: { id: doc.id }, data: { status: "PROCESSING", statusDetail: null } });
       const bytes = await this.readFile(doc.storageKey);
       const result = await extractDocument(doc.type, bytes, this.limits);
       await this.savePages(db, doc.id, result);
-      return "ready";
+      await this.queueEmbedding(job);
+      return "indexing";
     } catch (err) {
       if (isRecordGone(err)) return "skipped"; // deleted while we were working on it
 
@@ -122,7 +128,7 @@ export class DocumentProcessorService {
       await tx.document.update({
         where: { id: documentId },
         data: {
-          status: "READY",
+          status: "INDEXING", // Ready comes when the embeddings exist (DocumentIndexerService)
           statusDetail: null,
           pageCount: result.pages.length,
           charCount: result.charCount,
@@ -130,6 +136,15 @@ export class DocumentProcessorService {
         },
       });
     });
+  }
+
+  /** The hand-over to step two. If Redis is down now, the document stays Indexing and the sweeper queues it later. */
+  private async queueEmbedding(job: DocumentJob) {
+    try {
+      await this.queue.enqueueEmbedding({ documentId: job.documentId, workspaceId: job.workspaceId });
+    } catch (err) {
+      this.log.warn(`Could not queue embeddings for document ${job.documentId}. The sweeper will retry it. ${String(err)}`);
+    }
   }
 
   private async markFailed(db: TenantDb, documentId: string, reason: string) {

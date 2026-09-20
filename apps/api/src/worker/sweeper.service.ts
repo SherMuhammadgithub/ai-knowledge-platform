@@ -6,8 +6,9 @@ const SWEEP_INTERVAL_MS = 60_000;
 
 /**
  * The safety net. Normally the API queues a job right after an upload. But Redis can be down at that moment,
- * or the worker can die half way through. Every minute this looks for documents that are still Uploaded or
- * Processing after 5 minutes and queues them again. Processing is safe to repeat, so a duplicate is harmless.
+ * or the worker can die half way through. Every minute this looks for documents that are still Uploaded, Processing
+ * or Indexing after 5 minutes and queues them again, in the step they were stuck in. Both steps are safe to
+ * repeat, so a duplicate is harmless. (Indexing reports progress, which keeps a slow document from looking stuck.)
  */
 @Injectable()
 export class SweeperService implements OnModuleInit, OnApplicationShutdown {
@@ -34,7 +35,10 @@ export class SweeperService implements OnModuleInit, OnApplicationShutdown {
     const queued: string[] = [];
     for (const doc of stale) {
       try {
-        await this.queue.enqueue({ documentId: doc.id, workspaceId: doc.workspaceId });
+        const job = { documentId: doc.id, workspaceId: doc.workspaceId };
+        // Indexing means the text is already read: only the embeddings are missing.
+        if (doc.status === "INDEXING") await this.queue.enqueueEmbedding(job);
+        else await this.queue.enqueue(job);
         queued.push(doc.id);
       } catch (err) {
         this.log.warn(`Could not queue document ${doc.id}: ${String(err)}`);

@@ -8,7 +8,7 @@ One folder per milestone. Open the folder to see what the milestone was for, wha
 | 2 | Auth and workspaces | [M02-auth-and-workspaces](M02-auth-and-workspaces/README.md) | Built. Quiz unanswered |
 | 3 | Document upload and storage | [M03-document-upload](M03-document-upload/README.md) | Built. Quiz unanswered |
 | 4 | Processing worker | [M04-processing-worker](M04-processing-worker/README.md) | Built and browser-checked. Quiz open |
-| 5 | Chunking and embeddings | [M05-chunking-and-embeddings](M05-chunking-and-embeddings/README.md) | In progress (Checkpoints A and B done) |
+| 5 | Chunking and embeddings | [M05-chunking-and-embeddings](M05-chunking-and-embeddings/README.md) | Built and checked. Quiz open |
 | 6 to 14 | Retrieval, RAG, citations, conversations, evaluation, hybrid search, security, hardening, deployment | folders are created when each milestone is planned | Not started |
 
 ## What every milestone folder contains

@@ -320,6 +320,9 @@ async function main() {
         .join(", ");
       console.log(`${u.email.padEnd(20)} ${rows}`);
     }
+    // The seed works offline, so the sample documents have chunks but no vectors yet.
+    console.log(`\nThe sample documents are Ready but not searchable until they have embeddings. To make them searchable`);
+    console.log(`(sends the fictional sample text to Gemini): bun run --cwd apps/api embed:backfill`);
   } finally {
     await prisma.$disconnect();
   }

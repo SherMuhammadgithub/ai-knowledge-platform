@@ -80,3 +80,5 @@ Run `bun run smoke:gemini` and read the `[ai-usage]` lines. Then change `GEMINI_
 ## See also
 
 `background-jobs.md` covers running slow work outside the web request: queues, workers, retries, repeatable jobs and the sweeper. `text-extraction.md` covers the first step of the RAG pipeline that runs in that worker.
+
+Milestone 5 added the tokens-per-minute limiter, token-aware batching and a cache keyed by text and embedding setup. See `milestones/M05-chunking-and-embeddings/01-llm-fundamentals.md` and `02-embeddings.md`.

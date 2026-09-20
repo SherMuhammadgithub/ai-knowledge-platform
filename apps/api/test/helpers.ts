@@ -7,12 +7,15 @@ import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { ENV } from "../src/config/config.module";
+import { DocumentIndexerService } from "../src/embedding/document-indexer.service";
+import { EMBEDDINGS } from "../src/embedding/embedding.tokens";
 import type { Env } from "../src/config/env";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { DocumentProcessorService } from "../src/processing/document-processor.service";
 import { ProcessingModule } from "../src/processing/processing.module";
 import { DocumentQueueService } from "../src/queue/document-queue.service";
 import { setupApp } from "../src/setup-app";
+import { FakeEmbeddingClient } from "./fake-embeddings";
 
 export const TEST_JWT_SECRET = "test-secret-test-secret-test-secret-1234";
 
@@ -21,6 +24,9 @@ export type TestContext = {
   prisma: PrismaService;
   storageDir: string;
   processor: DocumentProcessorService;
+  indexer: DocumentIndexerService;
+  /** Every test app uses this instead of the real provider, so tests never call one. */
+  embeddings: FakeEmbeddingClient;
   queue: DocumentQueueService;
 };
 
@@ -42,6 +48,7 @@ export async function createTestApp(): Promise<TestContext> {
     EMBEDDING_DIMENSIONS: 768,
     GEMINI_GENERATION_RPM: 1,
     GEMINI_EMBEDDING_RPM: 1,
+    GEMINI_EMBEDDING_TPM: 30000,
     GEMINI_MAX_RETRIES: 0,
     DATABASE_URL: url,
     REDIS_URL: process.env.REDIS_URL ?? "redis://localhost:6379",
@@ -60,9 +67,12 @@ export async function createTestApp(): Promise<TestContext> {
     CHUNK_TARGET_TOKENS: 500,
     CHUNK_OVERLAP_TOKENS: 60,
   };
+  const embeddings = new FakeEmbeddingClient();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule, ProcessingModule] })
     .overrideProvider(ENV)
     .useValue(env)
+    .overrideProvider(EMBEDDINGS)
+    .useValue(embeddings)
     .compile();
   const app = moduleRef.createNestApplication();
   setupApp(app);
@@ -77,12 +87,14 @@ export async function createTestApp(): Promise<TestContext> {
     prisma: app.get(PrismaService),
     storageDir,
     processor: app.get(DocumentProcessorService),
+    indexer: app.get(DocumentIndexerService),
+    embeddings,
     queue: app.get(DocumentQueueService),
   };
 }
 
 export async function resetDb(prisma: PrismaService) {
-  await prisma.$executeRawUnsafe("TRUNCATE TABLE document_chunks, document_pages, documents, memberships, workspaces, users RESTART IDENTITY CASCADE");
+  await prisma.$executeRawUnsafe("TRUNCATE TABLE chunk_embeddings, document_chunks, document_pages, documents, memberships, workspaces, users RESTART IDENTITY CASCADE");
 }
 
 /** A supertest agent keeps cookies between calls, like a browser. */

@@ -46,15 +46,21 @@ export function DocumentChunksPanel({ view, onRetry }: { view: ChunksViewState |
   }
 
   const pageCount = new Set(chunks.map((c) => c.pageNumber)).size;
+  const embeddedCount = chunks.filter((c) => c.embedded).length;
   const averageTokens = Math.round(chunks.reduce((sum, c) => sum + c.tokenEstimate, 0) / chunks.length);
 
   return (
     <div>
       <p className="text-sm">
-        {plural(chunks.length, "chunk", "chunks")}, about {averageTokens.toLocaleString("en")} tokens each.
+        {plural(chunks.length, "chunk", "chunks")}, about {averageTokens.toLocaleString("en")} tokens each.{" "}
+        {embeddedCount === chunks.length
+          ? "Every chunk has a vector."
+          : embeddedCount === 0
+            ? "None has a vector yet."
+            : `${embeddedCount} of ${chunks.length} have a vector.`}
       </p>
       <p className="mt-1 max-w-[68ch] text-sm text-muted-foreground">
-        Each chunk is turned into a vector on its own. Tinted text at the start of a chunk repeats the end of the
+        Each chunk is turned into a vector of numbers on its own, and questions are matched to chunks by comparing vectors. Tinted text at the start of a chunk repeats the end of the
         chunk before it, so a sentence on a boundary is never lost.
       </p>
 
@@ -68,6 +74,7 @@ export function DocumentChunksPanel({ view, onRetry }: { view: ChunksViewState |
                 <div className="flex gap-4 font-mono text-xs tabular-nums text-muted-foreground">
                   {pageCount > 1 && <span>Page {chunk.pageNumber}</span>}
                   <span>about {chunk.tokenEstimate} tokens</span>
+                  <span>{chunk.embedded ? "embedded" : "no vector"}</span>
                 </div>
               </div>
               {overlap > 0 && (

@@ -55,7 +55,7 @@ describe("processing saves chunks", () => {
     const { wid } = await alice();
     const id = await storeDocument(wid, "TXT", fixtures.txt(longText()));
 
-    expect(await ctx.processor.process({ documentId: id, workspaceId: wid })).toBe("ready");
+    expect(await ctx.processor.process({ documentId: id, workspaceId: wid })).toBe("indexing");
 
     const pages = await ctx.prisma.documentPage.findMany({ where: { documentId: id } });
     const chunks = await chunksOf(id);
@@ -88,7 +88,7 @@ describe("processing saves chunks", () => {
     await ctx.prisma.documentChunk.createMany({ data: [stale("paragraph", 0), stale("paragraph", 1), stale("fixed", 0)] });
     await ctx.prisma.document.update({ where: { id }, data: { status: "PROCESSING" } });
 
-    expect(await ctx.processor.process({ documentId: id, workspaceId: wid })).toBe("ready");
+    expect(await ctx.processor.process({ documentId: id, workspaceId: wid })).toBe("indexing");
 
     const chunks = await chunksOf(id);
     expect(chunks.some((c) => c.text === "stale")).toBe(false);
@@ -144,7 +144,7 @@ describe("GET /documents/:id/chunks", () => {
     const res = await a.agent.get(`/documents/${id}/chunks`);
     expect(res.status).toBe(200);
     expect(res.body.strategy).toBe("paragraph");
-    expect(res.body.document).toMatchObject({ id, status: "READY", chunkCount: res.body.chunks.length });
+    expect(res.body.document).toMatchObject({ id, status: "INDEXING", chunkCount: res.body.chunks.length });
     const chunks = res.body.chunks as { chunkIndex: number; startChar: number; endChar: number; overlapWithPrevious: number }[];
     expect(chunks.map((c) => c.chunkIndex)).toEqual(chunks.map((_, i) => i));
     expect(chunks[0].overlapWithPrevious).toBe(0);

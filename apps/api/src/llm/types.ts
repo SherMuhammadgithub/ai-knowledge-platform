@@ -34,6 +34,12 @@ export type EmbedPurpose = "document" | "query";
 export interface EmbeddingClient {
   readonly model: string;
   readonly dimensions: number;
+  /**
+   * Names everything that decides what a vector means: the model, its dimensions, and how texts are worded for it.
+   * Vectors made under one setup id cannot be compared with vectors from another. It is part of every cache key,
+   * so changing the model, the size or the wording makes old vectors unused instead of silently mixed in.
+   */
+  readonly setupId: string;
   embed(texts: string[], purpose: EmbedPurpose): Promise<number[][]>;
 }
 

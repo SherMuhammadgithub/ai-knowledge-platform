@@ -18,6 +18,8 @@ How to use it:
 | Milestone 4 quiz (6 questions) | not answered |
 | Milestone 4 exercises (3) | not done |
 | Milestone 5, before coding (2 questions) | not answered |
+| Milestone 5 quiz (6 questions) | not answered |
+| Milestone 5 exercises (3) | not done |
 
 Background reading for each part is in the other files in this folder: `09-production-ai.md` (Milestone 1), `tenant-isolation.md` (Milestones 2 and 3) `file-uploads.md` (Milestone 3), and `text-extraction.md` and `background-jobs.md` (Milestone 4).
 
@@ -425,4 +427,96 @@ Your answer:
 <summary>Answer key</summary>
 
 Neither extreme. A starting point of 400 to 500 tokens with about 10 to 15 percent overlap is common, and Milestone 6 measures it. At 100 tokens a chunk often holds half an idea, loses words like "it" and "the policy above", and needs more chunks (more embedding calls and more results to sort through). At 1000 tokens one vector covers several topics, so it matches none of them well, and each retrieved chunk fills a lot of the answer prompt with text that is not needed. The right size depends on the documents and the questions, which is why we test it with numbers.
+</details>
+
+---
+
+## Milestone 5: chunking and embeddings
+
+Reading: `docs/learning/milestones/M05-chunking-and-embeddings/` (`concepts.md`, `01-llm-fundamentals.md`, `02-embeddings.md`, `03-chunking.md`). Nothing waits on your answers.
+
+### Quiz
+
+**1. The embedding cache is keyed by the workspace, the fingerprint of the chunk text, and a "setup id". What is in the setup id, and what goes wrong if the key used only the text fingerprint?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+The setup id names everything that decides what a vector means: the model, the number of dimensions, and a fingerprint of the instruction wording added in front of each text (`gemini-embedding-2|768|<8 characters>`). With only the text fingerprint, changing the model, the size or the wording would silently reuse vectors from the old setup. Vectors from different setups cannot be compared: a question embedded with the new setup would be scored against chunks embedded with the old one, and the scores would be meaningless without any error. With the setup id in the key, old vectors are simply not used, the chunks count as "not embedded" again, and the system embeds them once more.
+</details>
+
+**2. Embedding runs as its own job, on its own queue, one job at a time, after reading. Why not do it inside the reading job?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+Embedding is slow and limited by the provider's tokens per minute (a 300 chunk document takes minutes on the free tier), while reading takes well under a second. Inside one job, a long embedding would hold a worker slot and delay the reading of other documents. A separate queue with concurrency 1 also matches the limiter, which lives in one process. The split also lets the document show two honest states (Processing, then Indexing with progress), lets each step retry on its own terms (embedding waits 30 seconds between attempts, reading waits 5), and means a failure in embedding does not throw away the extracted text.
+</details>
+
+**3. A 300 chunk document is being embedded and the provider fails after 120 chunks. What is saved, what does the retry do, and why is pressing Retry cheap even after the document was marked Failed?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+Vectors are saved after every group of 16 texts, together with the note on each chunk that it has a vector, so the 112 to 128 chunks already done are kept (the first 7 or 8 groups). A retry by the queue only embeds the chunks that have no vector, so nothing already paid for is sent again. If every attempt fails, the document is marked Failed, but the vectors stay in the cache table. Pressing Retry reads the document again from the start (new chunks), and the embedding step finds each chunk's text in the cache by its fingerprint, so only the texts that were never embedded go to the provider. The tests "continues where it stopped" and "Retry later only pays for what is missing" check this.
+</details>
+
+**4. The limiter assumes 3 characters per token, but chunk sizes assume 4. Why the difference, and what can still go wrong?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+Sizing chunks with 4 gives chunks a little smaller than planned for English, which does no harm. The limiter is different: guessing too few tokens lets us send more than the per-minute budget and get refused, and refusals waste time and use quota. So it guesses more tokens (3 characters per token), which is safe but makes English text about a third slower. It can still go wrong for text with far more tokens per character: in Checkpoint A, codes and numbers were 72% under-estimated with 4, and even 3 leaves them low (93 characters were 82 tokens, estimated 31). Then a call can still be refused, and the retry with backoff is what recovers. Also, the limiter lives in one process: two workers would each assume the whole budget.
+</details>
+
+**5. A search returns a top score of 0.71, a second score of 0.70, and an unrelated chunk scores 0.60. What can you conclude, and what can you not conclude?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+You can conclude that both top chunks are somewhat closer to the question than unrelated text is, and that the ranking puts them first. You cannot conclude that the top one answers the question: 0.71 against 0.70 is a tiny gap, and even unrelated text scores about 0.6 with this model (Checkpoint A: 0.59 for a kitchen sentence). Scores are relative, so a fixed cutoff such as "above 0.5 is relevant" would accept everything. What helps is looking at gaps, keeping several chunks, measuring retrieval on real questions (Milestone 6), and later reranking (Milestone 11).
+</details>
+
+**6. When a document is deleted, its vectors are deleted too, except a vector that another document still uses. Why both parts?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+A vector is data derived from the document's text. If it stayed after the document was deleted, derived data would outlive the thing the person chose to remove. So the vectors of its texts are deleted. But two documents can contain the same paragraph and then share one cached vector (the cache is keyed by the text). Deleting that vector would leave the other document with a chunk that claims to be embedded but has no vector, so it would silently drop out of search. The code collects the fingerprints first, deletes the document, keeps every fingerprint still used by another chunk in the workspace, and deletes the rest. Tests cover a unique text, a shared text, and the last document using it.
+</details>
+
+### Exercises
+
+**A. Ask your own questions.** After `bun run --cwd apps/api embed:backfill`, run `bun run --cwd apps/api search --workspace "Acme Corp" "<question>"` with three questions: one that uses different words from the document (a synonym), one with an exact name or number, and one the documents cannot answer. For each, write down whether the right chunk is first, and the gap between rank 1 and rank 2.
+
+Your result:
+
+**B. Watch the cache work.** Set `CHUNK_TARGET_TOKENS=150` and `CHUNK_OVERLAP_TOKENS=20` in `.env`, run `bun run --cwd apps/api chunks:rebuild`, then `bun run --cwd apps/api embed:backfill`. How many texts were sent to Gemini and how many were served from the cache? Then set them back to 500 and 60 and repeat. What does the second run tell you about the cache?
+
+Your result:
+
+**C. Show the gap.** Change `apps/api/src/scripts/search.ts` so it also prints the difference between the score of rank 1 and rank 2 under the results. Why is the gap more informative than the top score alone?
+
+Your result:
+
+<details>
+<summary>Hints</summary>
+
+A: the synonym question is the interesting one, it is where meaning search should beat keyword search. For the exact number question, look at whether the score gap is larger or smaller than for the synonym one, and think about what hybrid search (Milestone 11) is for. For the unanswerable question, the search still returns five chunks with scores: nothing in this step says "I don't know".
+
+B: with the smaller target, the chunks are different texts, so most are sent to Gemini. When you go back to 500 and 60, the chunks have the same text as before (the same fingerprints), so the cache answers and almost nothing is sent, unless you deleted the vectors. This is why the cache key is the text and the setup, not the document.
+
+C: `hits[0].score - hits[1].score`, when there are at least two hits. The gap says how clearly the top result stands out from the rest, which is what a person needs to judge. A high top score with no gap means several chunks are about equally close.
 </details>

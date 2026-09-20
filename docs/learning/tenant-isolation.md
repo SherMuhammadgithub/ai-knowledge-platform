@@ -91,6 +91,14 @@ Vector search gets the same treatment: an indexed `workspace_id` payload filter 
 - **One deliberate exception.** The sweeper has to find stuck documents in every workspace. That query lives in `worker/system-queries.ts`, returns ids only, and is the only file allowed to use the plain client on a tenant table. A new guard test scans the source and fails if the plain client touches a tenant table anywhere else (the demo seed, which builds both tenants, is the other allowed place).
 - We checked the guard can fail: adding a plain-client read of the page table in another file turned it red.
 
+## Added in Milestone 5: chunks, vectors and the cache
+
+- **Chunks and vectors are tenant tables.** `document_chunks` and `chunk_embeddings` carry a workspace id, are registered in `TENANT_MODELS`, and are only reached through the scoped client. The guard test that looks for plain-client use now builds its pattern from that list, so a new tenant table is covered automatically.
+- **The embedding cache is per workspace, on purpose.** A cache shared across workspaces would save quota, but it would let one workspace's stored text change the cost and timing of another's. The price of isolation is that the same text in two workspaces is embedded twice. Tests check both directions.
+- **Search is scoped like everything else.** The plain search reads chunks and vectors through the scoped client, so a question can only find its own workspace's text, even when another workspace holds a closer match. A test plants a closer document in another workspace.
+- **Derived data is deleted with its source.** A vector is made from a document's text. When the document is deleted, its vectors go too, except one that another chunk in the same workspace still uses.
+- **Sending text to a provider is a data decision.** The backfill script embeds only fictional sample documents by default and lists everything else as skipped. Uploads are embedded like any other document, and the upload screen says "public documents only".
+
 ## Interview questions
 
 1. Where do you get the tenant id in a multi-tenant API, and why not from the request?

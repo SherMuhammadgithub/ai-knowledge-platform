@@ -1,4 +1,7 @@
 export const DOCUMENT_QUEUE_NAME = "document-processing";
+// A second queue for embedding. It has its own worker with one job at a time: embedding is limited by the
+// provider's tokens per minute, so a long embedding job must not hold up the reading of other documents.
+export const EMBEDDING_QUEUE_NAME = "document-embedding";
 
 /**
  * What a job carries. Both ids are set by the server when the job is created (after the upload was
@@ -14,4 +17,11 @@ export const JOB_OPTIONS = {
   backoff: { type: "exponential" as const, delay: 5_000 },
   removeOnComplete: true,
   removeOnFail: { count: 200 },
+};
+
+// Embedding retries wait longer: a rate-limit failure needs a minute or more to clear. Vectors already saved are
+// kept, so a retry only does the remaining work.
+export const EMBEDDING_JOB_OPTIONS = {
+  ...JOB_OPTIONS,
+  backoff: { type: "exponential" as const, delay: 30_000 },
 };

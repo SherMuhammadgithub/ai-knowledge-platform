@@ -23,10 +23,14 @@ enum DocumentType {
   TXT
 }
 
-// uploaded -> processing -> ready | failed. Milestone 3 only ever writes UPLOADED. The worker (M4) does the rest.
+// uploaded -> processing -> indexing -> ready | failed.
+// Processing: the text is being read and cut into chunks. Indexing: the chunks are being turned into vectors
+// (Milestone 5). Ready means searchable: the pipeline finished. Documents made before Indexing existed are Ready
+// with no vectors until the backfill script runs.
 enum DocumentStatus {
   UPLOADED
   PROCESSING
+  INDEXING
   READY
   FAILED
 }
@@ -49,10 +53,11 @@ model Workspace {
   name      String
   createdAt DateTime @default(now()) @map("created_at")
 
-  memberships    Membership[]
-  documents      Document[]
-  documentPages  DocumentPage[]
-  documentChunks DocumentChunk[]
+  memberships     Membership[]
+  documents       Document[]
+  documentPages   DocumentPage[]
+  documentChunks  DocumentChunk[]
+  chunkEmbeddings ChunkEmbedding[]
 
   @@map("workspaces")
 }
@@ -137,7 +142,10 @@ model DocumentChunk {
   endChar       Int      @map("end_char")
   text          String
   tokenEstimate Int      @map("token_estimate") // characters / 4
-  contentHash   String   @map("content_hash") // SHA-256 of the text, the embedding cache key (Checkpoint C)
+  contentHash   String   @map("content_hash") // SHA-256 of the text, the embedding cache key
+  // The embedding setup (model, dimensions, wording) this chunk's vector was made with, or null if it has none.
+  // A different current setup makes it "not embedded" again, so a model change shows up as work to do.
+  embeddedWith  String?  @map("embedded_with")
   createdAt     DateTime @default(now()) @map("created_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -145,5 +153,24 @@ model DocumentChunk {
 
   @@unique([documentId, strategy, chunkIndex])
   @@index([workspaceId, documentId])
+  @@index([workspaceId, contentHash])
   @@map("document_chunks")
+}
+
+// A vector for a piece of text, and at the same time the embedding CACHE: the same text under the same setup is
+// embedded once, however many chunks, documents or re-runs use it. Kept per workspace, like everything else that
+// comes from a workspace's documents. Vectors are disposable: they can always be rebuilt from document_chunks.
+// From Milestone 6 the vectors also live in Qdrant. This table stays as the cache.
+model ChunkEmbedding {
+  id          String   @id @default(uuid(7))
+  workspaceId String   @map("workspace_id")
+  contentHash String   @map("content_hash") // SHA-256 of the chunk text (not of the instruction wording)
+  setupId     String   @map("setup_id") // "<model>|<dimensions>|<wording id>", see EmbeddingClient.setupId
+  vector      Bytes // little-endian 32-bit floats, dimensions x 4 bytes
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, contentHash, setupId])
+  @@map("chunk_embeddings")
 }
