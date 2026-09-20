@@ -1,7 +1,7 @@
 # Progress
 
 **Current milestone:** 5 (Chunking and embeddings), in progress from 2026-09-20. Milestone 4 is closed (browser check passed). Quizzes for Milestones 1 to 4 are unanswered in `docs/learning/QUIZ.md` and do not block anything (M1 question 1 is worth answering before Milestone 5 ends).
-**Next action:** Milestone 5 Checkpoint B. The design is in `docs/learning/milestones/M05-chunking-and-embeddings/checkpoint-b-design.md`. Waiting for the user's go, then build the chunk table, the two chunkers, the processor step, the endpoint and the Chunks tab.
+**Next action:** Milestone 5 Checkpoint B is done. The user restarts the worker (`bun run worker`) so new uploads are chunked, reads `docs/learning/milestones/M05-chunking-and-embeddings/checkpoint-b-results.md`, answers its four questions (including what to do about resume files before anything is sent to Gemini), and says go for Checkpoint C.
 
 ## Milestones
 
@@ -114,6 +114,28 @@ Known gaps, on purpose:
 - Tests leave about 26 small keys under `akp-test:` in Redis. Harmless and namespaced.
 - No download endpoint yet (the source viewer in M8 needs one).
 
+## Milestone 5 checklist (chunking and embeddings, 2026-09-20)
+
+Plan and checkpoints: `docs/learning/milestones/M05-chunking-and-embeddings/README.md`.
+
+Checkpoint A (done): embedding docs read and recorded in `docs/PLAN.md`, `bun run lab:embeddings` (meaning search scores and token estimate check), results in `checkpoint-a-results.md`.
+
+Checkpoint B (done, real worker path still to confirm after the user restarts the worker):
+- [x] Table `document_chunks` (migration `document_chunks`), registered as a tenant table, covered by the scoped client and its guard tests
+- [x] Two chunkers, `fixed` and `paragraph`, plain functions with tests, including a random test over 300 pages and four size settings
+- [x] Processor cuts chunks and saves them with the pages and the Ready status in one transaction, replacing earlier chunks
+- [x] `GET /documents/:id/chunks`, `chunkCount` on every document, `bun run --cwd apps/api chunks:rebuild [--strategy fixed]`, seed uses the same chunker
+- [x] Web: Chunks tab (with overlap shown as tinted text and a caption), chunk count in the row. Checked in a browser in light and dark, at 390 px, with keyboard
+- [x] 161 API tests (32 new). 10 deliberate breaks all caught. Typecheck and lint clean in both apps
+- [x] Dev data: chunks cut for the 10 existing Ready documents with the rebuild script
+- [ ] Real worker in the browser: needs the worker restarted (the running one started before this code)
+
+Known gaps, on purpose:
+- Overlap is whole sentences only. When every sentence is longer than the overlap size a chunk gets none.
+- A sentence that crosses a page break is cut at the page break.
+- The Chunks tab shows only the configured strategy. Comparing strategies in the app is planned for the start of Milestone 6.
+- Chunk sizes are starting guesses. Milestone 6 measures them.
+
 ## Environment (checked 2026-09-19)
 
 Node v22.18.0, Bun 1.4.0, Docker 29.4.0, Git 2.51.0, Python 3.13.7. Host port 5432 is used by something else on the dev machine.
@@ -166,3 +188,10 @@ All quiz questions and exercises live in `docs/learning/QUIZ.md`, with a place f
 - 2026-09-20 (M4): Two Nest watchers writing to the same `dist` folder fight each other. The worker compiles to `dist-worker`.
 - 2026-09-20 (M4): The sweeper needs to remember what it queued, or it queues the same documents every minute. A mutation test proved it.
 - 2026-09-20 (M4): Two test documents built from identical bytes collided on the unique (workspace, hash) rule. The duplicate protection working.
+- 2026-09-20 (M5): A property test that called `expect()` once per character timed out (54 s for 300 pages). Collect the failures, assert once: 3.5 s.
+- 2026-09-20 (M5): The random property test found a real chunker bug (a chunk that repeated the previous one) that the hand-written tests missed. Keep both kinds of test.
+- 2026-09-20 (M5): Radix tabs open on a real mouse press. A synthetic `element.click()` in a browser script does nothing. Use the driver's own click.
+- 2026-09-20 (M5): A browser script that fails before its cleanup leaves test data behind and then trips the duplicate check on the next run. Clean up at the start as well as the end.
+- 2026-09-20 (M5): The `bg-muted` tint was clear in light and almost invisible in dark. Look at both themes before calling a highlight done.
+- 2026-09-20 (M5): The worker is not a watch process, so it kept running the old code after the change. Compare a process's start time with the time of the last code change before trusting it.
+- 2026-09-20 (M5): The first token-count script sent hand-uploaded resume text to the free tier. See the rule in `CLAUDE.md` about what may be sent to a provider.

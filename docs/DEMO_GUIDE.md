@@ -2,8 +2,8 @@
 
 Everything here is fake data for local development. The accounts use the reserved `.test` domain and a shared demo password. The seed script refuses to run in production or against a remote database.
 
-Built so far: sign up, sign in, workspaces, roles, members, tenant isolation, document upload and storage, automatic reading of documents (text extraction), dark mode, mobile layout.
-Not built yet: chunks and embeddings, search, chat, citations. A Ready document has its text stored, but nothing searches it yet.
+Built so far: sign up, sign in, workspaces, roles, members, tenant isolation, document upload and storage, automatic reading of documents (text extraction), cutting the text into chunks, dark mode, mobile layout.
+Not built yet: embeddings, search, chat, citations. A Ready document has its text and its chunks stored, but nothing searches them yet.
 
 ## 1. Start it
 
@@ -162,13 +162,23 @@ Needs the worker running (`bun run worker`).
 2. Open http://localhost:3000/api/documents/ followed by that id and `/pages`: you see its pages as JSON.
 3. Sign in as `erin@globex.test` (private window) and open the same address: "Document not found". To Erin it does not exist.
 
+### Q. Chunks
+Needs the worker restarted after pulling Milestone 5 code (`Ctrl+C`, then `bun run worker`), and the new migration applied (`bun run --cwd apps/api db:migrate`). Documents that were Ready before that get chunks from `bun run --cwd apps/api chunks:rebuild`. `bun run seed` does it for the demo documents.
+1. Sign in as `alice@acme.test`. Ready rows now say, for example, "644 characters, 1 chunk".
+2. Upload `demo-files/equipment-policy.txt` (run `bun run samples` first if the file is missing). Without refreshing, it goes to Ready with "5,578 characters, 4 chunks".
+3. Click the file name, then the **Chunks** tab. You see "4 chunks, about 386 tokens each" and four blocks. Chunk 1 has no repeat note. Chunks 2 to 4 say "Starts with N characters repeated from chunk N-1." and their first sentences are tinted.
+4. Scroll to where chunk 1 ends. Its last two sentences (about business travel) are the tinted first two sentences of chunk 2. That repeat is the overlap: a question that lands on the boundary still finds a whole sentence.
+5. Each chunk ends where a paragraph ends, never in the middle of a word. (The naive `fixed` chunker would cut mid-word. Compare in `docs/learning/milestones/M05-chunking-and-embeddings/checkpoint-b-results.md`.)
+6. Open the Chunks tab of a small document, for example the Employee handbook: one chunk, no overlap note.
+7. Chunks are separate per workspace: as `erin@globex.test`, opening `/api/documents/<an Acme document id>/chunks` says "Document not found".
+
 ## 4. Automated tests
 
 ```
 bun run test
 ```
 
-129 tests run against a separate `akp_test` database (and a separate queue), never the dev ones. They cover sign up and sign in, forged and tampered cookies, roles, cross-workspace access, the immediate removal in check G, the workspace-scoped database client, file type detection, storage safety, duplicate and oversized uploads, and who may delete what. Also text extraction from real generated PDF and Word files, every cleaning rule, the zip-bomb guard, the queue with a real worker, retries, the sweeper, and a job that names the wrong workspace.
+161 tests run against a separate `akp_test` database (and a separate queue), never the dev ones. They cover sign up and sign in, forged and tampered cookies, roles, cross-workspace access, the immediate removal in check G, the workspace-scoped database client, file type detection, storage safety, duplicate and oversized uploads, and who may delete what. Also text extraction from real generated PDF and Word files, every cleaning rule, the zip-bomb guard, the queue with a real worker, retries, the sweeper, and a job that names the wrong workspace. Also the chunkers (including a test on 300 random pages), chunks saved and replaced together with the pages, and chunks kept separate per workspace.
 
 ## 5. Reset the demo data
 
@@ -182,7 +192,7 @@ If you want a completely empty database instead, `docker compose down -v` and st
 
 ## 6. What comes next
 
-Milestone 5 turns each document's stored text into chunks and embeddings. That is where the GenAI learning starts: tokens, embeddings, chunk size and overlap, and how the choices show up in retrieval quality.
+Milestone 5 continues with embeddings: each chunk becomes a vector of 768 numbers, with a cache, a token-aware rate limit and a working meaning search. Then Milestone 6 stores the vectors in Qdrant and measures which chunking works best.
 
 ## 7. Stopping things properly
 

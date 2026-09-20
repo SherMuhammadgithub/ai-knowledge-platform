@@ -41,6 +41,35 @@ async function main() {
 
   write("meeting-notes.txt", "Product meeting, 12 March\n\nDecided to ship the beta in June.\nMaria owns the onboarding flow. Tom owns billing.\nNext review is on 26 March.\n");
 
+  // A text file of about 6,000 characters in twelve paragraphs: long enough to be cut into several chunks, so the
+  // Chunks tab shows where the cuts fall and the tinted overlap at the start of each chunk.
+  write(
+    "equipment-policy.txt",
+    [
+      "Equipment and workplace policy (SAMPLE DOCUMENT, fictional text written for demo data)",
+      "1. Laptops. Every new employee receives a laptop on their first day. The laptop stays the property of the company. It must be kept up to date and locked whenever it is left alone. Report a fault to the IT desk as soon as it appears. The IT desk replaces a faulty laptop within two working days.",
+      "2. Monitors and keyboards. Staff who work in the office can ask for one extra monitor and a keyboard of their choice. Requests go through the facilities desk. Standard models are approved at once. Other models need the approval of a line manager and are ordered within a week.",
+      "3. Working from home. Employees may work from home up to three days a week, agreed with their manager. Home workers use the company laptop and the company VPN. Work files are never stored on a personal device. Anyone who works from home for a whole week tells their manager the day before.",
+      "4. Home office allowance. The company pays a one time allowance of 300 dollars towards a desk, a chair or a screen for home use. Keep the receipt and attach it to the expense form. The allowance is paid with the next salary. It can be claimed again after three years.",
+      "5. Expenses. Claim an expense within 30 days of paying for it. Attach a receipt to every claim, however small. Meals during business travel are reimbursed up to 40 dollars a day. Alcohol is never reimbursed. Claims over 500 dollars need a director to approve them.",
+      "6. Business travel. Book flights and hotels through the company travel desk. Economy class is standard for flights under six hours. Hotel stays are reimbursed up to 150 dollars per night. Trips longer than five days need approval from a director before booking.",
+      "7. Visitors. Every visitor must be registered by their host before they arrive. Visitors wear a badge and are accompanied at all times. Hosts collect visitors from reception. A visitor who is not registered waits at reception until their host confirms the visit.",
+      "8. Meeting rooms. Meeting rooms are booked through the shared calendar. A room is released automatically after 15 minutes if nobody has arrived. Catering orders need two working days notice. Please leave the room tidy and switch off the screen when you leave.",
+      "9. Lost or stolen items. Report a lost or stolen item to the facilities desk within one working day. If the item held company data, also tell the security lead so that access can be removed. The facilities desk keeps a register of every report and checks it each month.",
+      "10. Personal devices. Staff may use their own phone for work email if it has a screen lock and the company mail app installed. Personal laptops may not be used to store customer files. The IT desk can remove company data from a phone that is lost.",
+      "11. Returning equipment. When someone leaves, they return their laptop, badge and any borrowed equipment on their last day. The IT desk wipes the laptop and prepares it for the next person. Equipment that is not returned within 14 days is chased by email.",
+      "12. Parking. There are 40 parking spaces for staff, allocated by a monthly draw. Electric vehicle charging is available on level one. Visitors should use the public car park across the road. Bicycle storage is free and needs no booking. Showers are on the ground floor next to the kitchen.",
+      "13. Security badges. Every employee has a badge that opens the main doors from 07:00 to 19:00 on weekdays. A lost badge is reported to reception at once, and the old badge is switched off within the hour. A replacement badge costs nothing the first time. Later replacements are charged at ten dollars each.",
+      "14. Fire safety. Know where the two nearest exits are. Fire doors stay closed and are never propped open. The assembly point is the car park behind the building. A fire drill takes place twice a year. Fire wardens wear a yellow vest and count everyone in their area at the assembly point.",
+      "15. Health and safety. Report any accident, however small, to the facilities desk on the same day. First aid kits are on every floor and are checked each month. Employees may ask for a workplace assessment of their desk and chair. The assessment is done within two weeks of the request.",
+      "16. Training budget. Each employee has a training budget of 800 dollars a year. It covers courses, books and conference tickets that help with their work. Ask your manager before you book. Unused budget does not carry over to the next year, so plan the spending early.",
+      "17. Holiday requests. Ask for holiday through the people system at least two weeks ahead for anything longer than three days. Managers reply within three working days. Two people from the same team may not be away at the same time during the last week of the month.",
+      "18. Working hours. Core hours are 10:00 to 15:00, when everyone can be reached. Outside those hours staff choose their own start and finish times, as long as they work their contracted hours. Overtime is agreed in advance with a manager and taken as time off within two months.",
+      "19. Quiet rooms. The two quiet rooms on the second floor are for calls and focused work. They are booked for up to two hours at a time. Eating is not allowed in the quiet rooms. Phone calls in the open office should be kept short and taken in a meeting room when they run long.",
+      "20. Questions. Questions about this policy go to the facilities desk during office hours. Questions about laptops and accounts go to the IT desk. The policy is reviewed once a year and changes are announced by email at least two weeks before they apply.",
+    ].join("\n\n") + "\n",
+  );
+
   // Valid PDFs whose pages contain no text, like a scan made only of pictures. Processing fails with a reason.
   write("scanned-form.pdf", await makePdf([[], [], []]));
 

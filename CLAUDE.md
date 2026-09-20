@@ -2,7 +2,7 @@
 
 Project 1 of the GenAI portfolio program. Read the parent `../CLAUDE.md` first (role, teaching procedure, milestone protocol, hard rules). This file adds project-specific decisions.
 
-**Current state:** Milestones 1 to 4 are built and checked. Milestone 5 (chunking and embeddings) is in progress: plan, checkpoints and status are in `docs/learning/milestones/M05-chunking-and-embeddings/README.md`. `docs/PROGRESS.md` has the exact state and open items. Do not skip ahead. Full plan is in `docs/PLAN.md`. To click through what exists: `docs/DEMO_GUIDE.md`.
+**Current state:** Milestones 1 to 4 are built and checked. Milestone 5 (chunking and embeddings) is in progress: checkpoints A and B are done, C (embeddings) is next on the user's go. Plan, checkpoints and status: `docs/learning/milestones/M05-chunking-and-embeddings/README.md`. `docs/PROGRESS.md` has the exact state and open items. Do not skip ahead. Full plan is in `docs/PLAN.md`. To click through what exists: `docs/DEMO_GUIDE.md`.
 
 ## What we are building
 
@@ -48,6 +48,7 @@ Python is only allowed if a specific AI/document task clearly needs it and Node 
   - **Tests:** `bun run test` (real Postgres `akp_test`, never the dev database). Isolation tests are mutation-checked: removing the membership check or the workspace filter makes them fail.
 - **AI must not block HTTP requests.** Upload returns immediately, creates a BullMQ job, the worker processes it, status is updated (`uploaded -> processing -> ready | failed`), and the frontend polls or subscribes.
 - **Processing (built in M4):** upload saves the file and row (status `UPLOADED`), adds a BullMQ job `{documentId, workspaceId}` (`queue/`), and returns. A separate worker process (`bun run worker`, `worker/`) runs `DocumentProcessorService` (`processing/`): read the file, extract (pdfjs per page, mammoth, text), clean, save one `DocumentPage` row per page and mark `READY` in one transaction. Problems with the file (no text, damaged, too big, password) are `PermanentProcessingError`: `FAILED` at once with a plain reason. Anything else is temporary: BullMQ retries 3 times, then `FAILED`. The processor must stay safe to run twice. The sweeper re-queues documents stuck for over 5 minutes. OCR, tables and images are out of scope. Limits: `MAX_PDF_PAGES` 300, `PROCESSING_TIMEOUT_SECONDS` 60, 3 million characters, zip-bomb guard.
+- **Chunking (built in M5):** the processor cuts each page into chunks (`chunking/`) and saves them in `document_chunks` in the same transaction as the pages and the Ready status. Chunks never cross a page. `page.text.slice(startChar, endChar) === chunk.text` is the invariant everything relies on. Strategies: `paragraph` (default: whole paragraphs, then sentences via `Intl.Segmenter`, then words as a last resort, overlap of whole sentences) and `fixed` (naive baseline for the M6 comparison). Sizes are estimated tokens (characters / 4): `CHUNK_TARGET_TOKENS` 500, `CHUNK_OVERLAP_TOKENS` 60, starting guesses that M6 measures. Chunks are tenant data and are read and written through the scoped client only. Changing strategy or sizes only affects new documents: run `chunks:rebuild` for the rest.
 - **Keep the pipeline visible.** The first RAG implementation must show document -> chunks -> embeddings -> vectors -> retrieval -> context -> LLM -> answer as plainly readable code. Only the provider interfaces are abstracted early.
 - Embedding dimension is set by the embedding model and stored in config. Changing the embedding model means re-embedding everything (teach this at M5).
 - Cache embeddings by content hash. This matters for free-tier limits and for rerunning experiments.
@@ -93,6 +94,8 @@ bun run api                           # NestJS on :3001 (loads the root .env)
 bun run web                           # Next.js on :3000 (proxies /api/* to the API)
 bun run worker                        # processing worker: reads uploaded documents (needs Redis and the database)
 bun run samples                       # writes sample files to demo-files/ for manual uploads
+bun run --cwd apps/api chunks:rebuild # cut chunks for Ready documents from their stored pages (add --strategy fixed for the other one)
+bun run --cwd apps/api lab:embeddings # M5 experiment: cosine scores and token estimate check (sends only sample text to Gemini)
 bun run test                          # API tests against the akp_test database
 bun run smoke:gemini                  # real Gemini calls, needs GEMINI_API_KEY
 ```

@@ -56,8 +56,11 @@ const SLOW_AFTER_MS = 2 * 60_000;
 /** The second line under the status: what it means, or why it failed. */
 function statusLine(d: DocumentItem): string {
   if (d.status === "READY") {
-    if (d.type === "PDF") return `${d.pageCount} ${d.pageCount === 1 ? "page" : "pages"}`;
-    return `${(d.charCount ?? 0).toLocaleString("en")} characters`;
+    const size =
+      d.type === "PDF"
+        ? `${d.pageCount} ${d.pageCount === 1 ? "page" : "pages"}`
+        : `${(d.charCount ?? 0).toLocaleString("en")} characters`;
+    return d.chunkCount > 0 ? `${size}, ${d.chunkCount} ${d.chunkCount === 1 ? "chunk" : "chunks"}` : size;
   }
   if (d.status === "FAILED") return d.statusDetail ?? "This document could not be read.";
   if (d.status === "PROCESSING") return "Reading the file";

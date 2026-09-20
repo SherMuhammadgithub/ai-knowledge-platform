@@ -1,6 +1,6 @@
 # Milestone 5: chunking and embeddings
 
-**Status:** in progress, started 2026-09-20. Checkpoint A done and its three decisions agreed. Checkpoint B design written (`checkpoint-b-design.md`), waiting for your go.
+**Status:** in progress, started 2026-09-20. Checkpoints A and B done. Waiting for your answers in `checkpoint-b-results.md` before Checkpoint C.
 **Time budget:** about 12 hours (from `docs/PLAN.md`).
 
 ## Goal
@@ -25,6 +25,7 @@ Qdrant, filtering, top-K tuning and the chunking experiment come in Milestone 6.
 
 ## Results so far
 
+- [`checkpoint-b-results.md`](checkpoint-b-results.md): what was built, the two chunkers compared on the same text, what you can see in the app, costs found, tests, and four questions for you.
 - [`checkpoint-a-results.md`](checkpoint-a-results.md): the measured scores and token counts, what they mean, and three decisions for you.
 
 ## Read first
@@ -42,10 +43,10 @@ Three checkpoints. I stop at each one, show you the result, and wait. You decide
 - [x] A3. Token estimate check: prose is over-estimated by up to 19%, codes and numbers under-estimated by 72%. Details in `checkpoint-a-results.md`.
 
 **Checkpoint B: chunks exist and can be inspected**
-- [ ] B1. Migration: `document_chunks` (tenant table: workspace, document, page, chunk index, start and end position, text, token estimate, content hash, strategy name). Registered in `TENANT_MODELS` with a cross-tenant test.
-- [ ] B2. Chunker, two strategies behind one name field: `fixed` (naive, cut by size) and `paragraph` (production style: paragraphs, then sentences, size in tokens, overlap). Each rule has a test.
-- [ ] B3. Chunking runs in the worker after extraction. Deleting or re-running a document replaces its chunks (safe to run twice, like M4).
-- [ ] B4. Screen: the document shows its chunk count, and the text panel marks where chunks begin.
+- [x] B1. Migration: `document_chunks` (tenant table: workspace, document, page, chunk index, start and end position, text, token estimate, content hash, strategy name). Registered in `TENANT_MODELS` with a cross-tenant test.
+- [x] B2. Chunker, two strategies behind one name field: `fixed` (naive, cut by size) and `paragraph` (production style: paragraphs, then sentences, size in tokens, overlap). Each rule has a test.
+- [x] B3. Chunking runs in the worker after extraction. Deleting or re-running a document replaces its chunks (safe to run twice, like M4).
+- [x] B4. Screen: the document shows its chunk count, and the text panel marks where chunks begin.
 
 **Checkpoint C: embeddings and a working search**
 - [ ] C1. Embedding cache table: vector, keyed by hash of (text, model, dimensions).

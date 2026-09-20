@@ -56,6 +56,9 @@ export async function createTestApp(): Promise<TestContext> {
     WORKER_CONCURRENCY: 1,
     MAX_PDF_PAGES: 300,
     PROCESSING_TIMEOUT_SECONDS: 60,
+    CHUNK_STRATEGY: "paragraph",
+    CHUNK_TARGET_TOKENS: 500,
+    CHUNK_OVERLAP_TOKENS: 60,
   };
   const moduleRef = await Test.createTestingModule({ imports: [AppModule, ProcessingModule] })
     .overrideProvider(ENV)
@@ -79,7 +82,7 @@ export async function createTestApp(): Promise<TestContext> {
 }
 
 export async function resetDb(prisma: PrismaService) {
-  await prisma.$executeRawUnsafe("TRUNCATE TABLE document_pages, documents, memberships, workspaces, users RESTART IDENTITY CASCADE");
+  await prisma.$executeRawUnsafe("TRUNCATE TABLE document_chunks, document_pages, documents, memberships, workspaces, users RESTART IDENTITY CASCADE");
 }
 
 /** A supertest agent keeps cookies between calls, like a browser. */

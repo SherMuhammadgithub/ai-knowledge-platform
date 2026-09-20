@@ -87,7 +87,7 @@ describe("guards against future mistakes", () => {
     walk(resolve(__dirname, "../src"));
 
     // "prisma.document" is the plain client. The scoped client is always reached as "db.document" or "tx.document".
-    const plain = /\bprisma\.(document|documentPage)\b/;
+    const plain = new RegExp(`\\bprisma\\.(${TENANT_MODELS.join("|")})\\b`);
     const allowed = ["worker/system-queries.ts", "scripts/"]; // the sweeper, and the demo seed which builds both tenants
     const offenders = files.filter((f) => plain.test(readFileSync(f, "utf8")) && !allowed.some((a) => f.replace(/\\/g, "/").includes(a)));
     expect(offenders, `plain client on a tenant table in: ${offenders.join(", ")}`).toEqual([]);
@@ -192,6 +192,26 @@ describe("forWorkspace against the real database", () => {
     expect(await db.documentPage.findUnique({ where: { id: pageB.id } })).toBeNull();
     expect((await db.documentPage.deleteMany({ where: { id: pageB.id } })).count).toBe(0);
     expect(await ctx.prisma.documentPage.count({ where: { workspaceId: wb } })).toBe(1);
+  });
+
+  it("scopes the chunk table the same way: another workspace's chunks are invisible, untouchable and cannot be planted", async () => {
+    const { wa, wb, docA, docB } = await twoWorkspacesWithDocuments();
+    const chunk = (workspaceId: string, documentId: string, text: string) => ({
+      workspaceId, documentId, pageNumber: 1, chunkIndex: 0, strategy: "paragraph", startChar: 0, endChar: text.length, text, tokenEstimate: 2, contentHash: text,
+    });
+    await ctx.prisma.documentChunk.create({ data: chunk(wa, docA.id, "A chunk") });
+    const chunkB = await ctx.prisma.documentChunk.create({ data: chunk(wb, docB.id, "B chunk") });
+
+    const db = forWorkspace(ctx.prisma, wa);
+    expect((await db.documentChunk.findMany()).map((c) => c.text)).toEqual(["A chunk"]);
+    expect(await db.documentChunk.findUnique({ where: { id: chunkB.id } })).toBeNull();
+    expect((await db.documentChunk.deleteMany({ where: { id: chunkB.id } })).count).toBe(0);
+    expect((await db.documentChunk.updateMany({ where: { id: chunkB.id }, data: { text: "changed" } })).count).toBe(0);
+    expect(await ctx.prisma.documentChunk.count({ where: { workspaceId: wb } })).toBe(1);
+
+    // A chunk that names another workspace in its data still lands in the caller's workspace.
+    await db.documentChunk.create({ data: { ...chunk(wb, docA.id, "planted"), chunkIndex: 1 } });
+    expect((await ctx.prisma.documentChunk.findFirstOrThrow({ where: { text: "planted" } })).workspaceId).toBe(wa);
   });
 
   it("scopes the queries inside a transaction too, and a failure rolls everything back", async () => {

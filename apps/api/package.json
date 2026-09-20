@@ -19,7 +19,8 @@
     "worker": "nest start --entryFile worker --path tsconfig.worker.json --exec \"node --env-file=../../.env\"",
     "worker:dev": "nest start --watch --entryFile worker --path tsconfig.worker.json --exec \"node --env-file=../../.env\"",
     "start:worker": "node --env-file=../../.env dist-worker/worker.js",
-    "samples": "bun run src/scripts/make-demo-files.ts"
+    "samples": "bun run src/scripts/make-demo-files.ts",
+    "chunks:rebuild": "bun --env-file=../../.env run src/scripts/chunks-rebuild.ts"
   },
   "dependencies": {
     "@google/genai": "^2.23.0",

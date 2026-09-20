@@ -6,6 +6,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from "@nestjs/common";
@@ -35,6 +36,15 @@ export class DocumentsController {
   @Get(":id/pages")
   pages(@CurrentWorkspace() actor: WorkspaceAuth, @Param("id", new ParseUUIDPipe()) id: string) {
     return this.documents.pages(actor, id);
+  }
+
+  @Get(":id/chunks")
+  chunks(
+    @CurrentWorkspace() actor: WorkspaceAuth,
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Query("strategy") strategy?: string,
+  ) {
+    return this.documents.chunks(actor, id, strategy);
   }
 
   @Post(":id/retry")

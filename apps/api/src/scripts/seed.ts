@@ -8,6 +8,7 @@ import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PasswordService } from "../auth/password.service";
+import { CHUNK_STRATEGIES, chunkPages, chunkSettingsFrom } from "../chunking";
 import { PrismaClient, type WorkspaceRole } from "../generated/prisma/client";
 import { PermanentProcessingError } from "../processing/errors";
 import { type DocumentKind, type ExtractedDocument, extractDocument } from "../processing/extract-document";
@@ -15,6 +16,13 @@ import { LocalDiskStorage } from "../storage/local-disk.storage";
 import { blankPdf, makeDocx, makePdf } from "./sample-files";
 
 export const DEMO_PASSWORD = "demo-password-123";
+
+// Same settings and defaults as the worker (config/env.ts), read here without needing the Gemini key.
+const chunkStrategy = CHUNK_STRATEGIES.find((s) => s === process.env.CHUNK_STRATEGY) ?? "paragraph";
+const chunkSettings = chunkSettingsFrom({
+  CHUNK_TARGET_TOKENS: Number(process.env.CHUNK_TARGET_TOKENS ?? 500),
+  CHUNK_OVERLAP_TOKENS: Number(process.env.CHUNK_OVERLAP_TOKENS ?? 60),
+});
 
 // Fixed ids (valid UUIDv7 shape) so the seed is repeatable and the guide can name exact workspaces.
 const uid = (n: number) => `019a0000-0000-7000-8000-${n.toString(16).padStart(12, "0")}`;
@@ -288,6 +296,13 @@ async function main() {
           await tx.documentPage.createMany({
             data: d.result.pages.map((text, index) => ({ workspaceId, documentId: uid(d.id), pageNumber: index + 1, text, charCount: text.length })),
           });
+          // The same chunker the worker uses, so seeded documents look exactly like uploaded ones.
+          const chunks = chunkPages(
+            d.result.pages.map((text, index) => ({ pageNumber: index + 1, text })),
+            chunkStrategy,
+            chunkSettings,
+          );
+          await tx.documentChunk.createMany({ data: chunks.map((c) => ({ ...c, workspaceId, documentId: uid(d.id) })) });
         }
       }
     });

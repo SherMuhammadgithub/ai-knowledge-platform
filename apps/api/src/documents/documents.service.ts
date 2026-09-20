@@ -10,25 +10,36 @@ import {
   UnsupportedMediaTypeException,
 } from "@nestjs/common";
 import type { WorkspaceAuth } from "../auth/auth.types";
+import { CHUNK_STRATEGIES, type ChunkStrategy } from "../chunking";
+import { ENV } from "../config/config.module";
+import type { Env } from "../config/env";
 import { TenantPrismaService } from "../prisma/tenant-prisma.service";
 import { DocumentQueueService } from "../queue/document-queue.service";
 import { STORAGE, type StorageService } from "../storage/storage.service";
-import { cleanFileName, detectKind, EXTENSION_KIND, extensionOf } from "./file-type";
+import {
+  cleanFileName,
+  detectKind,
+  EXTENSION_KIND,
+  extensionOf,
+} from "./file-type";
 import type { UploadedFileData } from "./uploaded-file";
 
-const SELECT = {
-  id: true,
-  originalName: true,
-  type: true,
-  sizeBytes: true,
-  status: true,
-  statusDetail: true,
-  pageCount: true,
-  charCount: true,
-  processedAt: true,
-  createdAt: true,
-  uploadedBy: { select: { id: true, name: true, email: true } },
-} as const;
+// The chunk count is for the strategy the worker uses, so a second strategy stored for comparison is not counted.
+const selectFor = (strategy: ChunkStrategy) =>
+  ({
+    id: true,
+    originalName: true,
+    type: true,
+    sizeBytes: true,
+    status: true,
+    statusDetail: true,
+    pageCount: true,
+    charCount: true,
+    processedAt: true,
+    createdAt: true,
+    uploadedBy: { select: { id: true, name: true, email: true } },
+    _count: { select: { chunks: { where: { strategy } } } },
+  }) as const;
 
 type Row = {
   id: string;
@@ -42,6 +53,7 @@ type Row = {
   processedAt: Date | null;
   createdAt: Date;
   uploadedBy: { id: string; name: string | null; email: string } | null;
+  _count: { chunks: number };
 };
 
 const toDto = (r: Row) => ({
@@ -53,6 +65,7 @@ const toDto = (r: Row) => ({
   statusDetail: r.statusDetail,
   pageCount: r.pageCount,
   charCount: r.charCount,
+  chunkCount: r._count.chunks,
   processedAt: r.processedAt,
   createdAt: r.createdAt,
   uploadedBy: r.uploadedBy,
@@ -61,15 +74,26 @@ const toDto = (r: Row) => ({
 @Injectable()
 export class DocumentsService {
   private readonly log = new Logger(DocumentsService.name);
+  private readonly strategy: ChunkStrategy;
+  private readonly select;
 
   constructor(
     private readonly tenant: TenantPrismaService,
     private readonly queue: DocumentQueueService,
     @Inject(STORAGE) private readonly storage: StorageService,
-  ) {}
+    @Inject(ENV) env: Env,
+  ) {
+    this.strategy = env.CHUNK_STRATEGY;
+    this.select = selectFor(this.strategy);
+  }
 
   async list(actor: WorkspaceAuth) {
-    const rows = await this.tenant.for(actor).document.findMany({ orderBy: { createdAt: "desc" }, select: SELECT });
+    const rows = await this.tenant
+      .for(actor)
+      .document.findMany({
+        orderBy: { createdAt: "desc" },
+        select: this.select,
+      });
     return rows.map(toDto);
   }
 
@@ -79,18 +103,29 @@ export class DocumentsService {
 
     const name = cleanFileName(file.originalname);
     const expected = EXTENSION_KIND[extensionOf(name)];
-    if (!expected) throw new UnsupportedMediaTypeException("Only PDF, DOCX and TXT files are supported");
+    if (!expected)
+      throw new UnsupportedMediaTypeException(
+        "Only PDF, DOCX and TXT files are supported",
+      );
 
     // The bytes decide what the file is. A mismatch (an .exe named .pdf) is refused.
     if (detectKind(file.buffer) !== expected) {
-      throw new UnsupportedMediaTypeException(`This file is not a valid ${expected} file`);
+      throw new UnsupportedMediaTypeException(
+        `This file is not a valid ${expected} file`,
+      );
     }
 
     const contentHash = createHash("sha256").update(file.buffer).digest("hex");
     const db = this.tenant.for(actor);
 
-    const existing = await db.document.findFirst({ where: { contentHash }, select: { originalName: true } });
-    if (existing) throw new ConflictException(`This file is already in the workspace as "${existing.originalName}"`);
+    const existing = await db.document.findFirst({
+      where: { contentHash },
+      select: { originalName: true },
+    });
+    if (existing)
+      throw new ConflictException(
+        `This file is already in the workspace as "${existing.originalName}"`,
+      );
 
     // We choose the id and the storage key. Nothing from the upload becomes part of a path.
     const id = randomUUID();
@@ -111,7 +146,7 @@ export class DocumentsService {
           contentHash,
           storageKey,
         },
-        select: SELECT,
+        select: this.select,
       });
     } catch (err) {
       await this.storage.delete(storageKey).catch(() => undefined); // do not leave an orphan file behind
@@ -129,12 +164,22 @@ export class DocumentsService {
   /** A failed document can be tried again, by whoever may delete it. */
   async retry(actor: WorkspaceAuth, id: string) {
     const db = this.tenant.for(actor);
-    const doc = await db.document.findUnique({ where: { id }, select: { id: true, status: true, uploadedById: true } });
+    const doc = await db.document.findUnique({
+      where: { id },
+      select: { id: true, status: true, uploadedById: true },
+    });
     if (!doc) throw new NotFoundException("Document not found");
     this.assertCanManage(actor, doc.uploadedById);
-    if (doc.status !== "FAILED") throw new ConflictException("Only documents that failed can be tried again");
+    if (doc.status !== "FAILED")
+      throw new ConflictException(
+        "Only documents that failed can be tried again",
+      );
 
-    const row = await db.document.update({ where: { id }, data: { status: "UPLOADED", statusDetail: null }, select: SELECT });
+    const row = await db.document.update({
+      where: { id },
+      data: { status: "UPLOADED", statusDetail: null },
+      select: this.select,
+    });
     await this.enqueue(actor.workspaceId, id);
     return toDto(row);
   }
@@ -142,7 +187,10 @@ export class DocumentsService {
   /** The text the worker extracted, page by page. Makes the pipeline visible: what was actually read. */
   async pages(actor: WorkspaceAuth, id: string) {
     const db = this.tenant.for(actor);
-    const doc = await db.document.findUnique({ where: { id }, select: SELECT });
+    const doc = await db.document.findUnique({
+      where: { id },
+      select: this.select,
+    });
     if (!doc) throw new NotFoundException("Document not found");
     const pages = await db.documentPage.findMany({
       where: { documentId: id },
@@ -152,10 +200,58 @@ export class DocumentsService {
     return { document: toDto(doc), pages };
   }
 
+  /**
+   * The chunks of a document, in order. Makes the chunking visible: exactly what will be embedded.
+   * `overlapWithPrevious` is how many characters at the start of a chunk repeat the end of the previous chunk on the same page.
+   */
+  async chunks(actor: WorkspaceAuth, id: string, requested?: string) {
+    const strategy = this.parseStrategy(requested);
+    const db = this.tenant.for(actor);
+    const doc = await db.document.findUnique({
+      where: { id },
+      select: this.select,
+    });
+    if (!doc) throw new NotFoundException("Document not found");
+    const rows = await db.documentChunk.findMany({
+      where: { documentId: id, strategy },
+      orderBy: { chunkIndex: "asc" },
+      select: {
+        chunkIndex: true,
+        pageNumber: true,
+        startChar: true,
+        endChar: true,
+        text: true,
+        tokenEstimate: true,
+      },
+    });
+    const chunks = rows.map((c, i) => {
+      const before = rows[i - 1];
+      const shared =
+        before && before.pageNumber === c.pageNumber
+          ? before.endChar - c.startChar
+          : 0;
+      return { ...c, overlapWithPrevious: Math.max(0, shared) };
+    });
+    return { document: toDto(doc), strategy, chunks };
+  }
+
+  private parseStrategy(requested?: string): ChunkStrategy {
+    if (requested === undefined || requested === "") return this.strategy;
+    const found = CHUNK_STRATEGIES.find((s) => s === requested);
+    if (!found)
+      throw new BadRequestException(
+        `strategy must be one of: ${CHUNK_STRATEGIES.join(", ")}`,
+      );
+    return found;
+  }
+
   async remove(actor: WorkspaceAuth, id: string): Promise<void> {
     const db = this.tenant.for(actor);
     // Scoped lookup: a document id from another workspace is simply "not found".
-    const doc = await db.document.findUnique({ where: { id }, select: { id: true, uploadedById: true, storageKey: true } });
+    const doc = await db.document.findUnique({
+      where: { id },
+      select: { id: true, uploadedById: true, storageKey: true },
+    });
     if (!doc) throw new NotFoundException("Document not found");
     this.assertCanManage(actor, doc.uploadedById);
 
@@ -169,7 +265,9 @@ export class DocumentsService {
   // Admins and owners manage any document. A member manages only their own uploads.
   private assertCanManage(actor: WorkspaceAuth, uploadedById: string | null) {
     if (actor.role === "MEMBER" && uploadedById !== actor.userId) {
-      throw new ForbiddenException("Only admins, owners and the person who uploaded it can do this to the document");
+      throw new ForbiddenException(
+        "Only admins, owners and the person who uploaded it can do this to the document",
+      );
     }
   }
 
@@ -178,7 +276,9 @@ export class DocumentsService {
     try {
       await this.queue.enqueue({ workspaceId, documentId });
     } catch (err) {
-      this.log.error(`Could not queue document ${documentId}. The sweeper will retry it. ${String(err)}`);
+      this.log.error(
+        `Could not queue document ${documentId}. The sweeper will retry it. ${String(err)}`,
+      );
     }
   }
 }

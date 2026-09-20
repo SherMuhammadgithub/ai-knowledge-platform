@@ -36,6 +36,8 @@ export type DocumentItem = {
   /** Set when READY. Formats without pages (TXT, DOCX) count as one page. */
   pageCount: number | null;
   charCount: number | null;
+  /** Pieces the text was cut into for search (0 until the document is Ready, or if it has not been chunked yet). */
+  chunkCount: number;
   processedAt: string | null;
   createdAt: string;
   uploadedBy: { id: string; name: string | null; email: string } | null;
@@ -44,6 +46,23 @@ export type DocumentItem = {
 export type DocumentPagesResponse = {
   document: DocumentItem;
   pages: { pageNumber: number; text: string }[];
+};
+
+export type DocumentChunk = {
+  /** Order within the document, from 0. */
+  chunkIndex: number;
+  pageNumber: number;
+  text: string;
+  /** Estimated (characters / 4), not a real token count. */
+  tokenEstimate: number;
+  /** How many characters at the start of this chunk repeat the end of the previous chunk on the same page. */
+  overlapWithPrevious: number;
+};
+
+export type DocumentChunksResponse = {
+  document: DocumentItem;
+  strategy: "paragraph" | "fixed";
+  chunks: DocumentChunk[];
 };
 
 export const STATUS_LABEL: Record<DocumentStatus, string> = {
