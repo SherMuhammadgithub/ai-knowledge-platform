@@ -17,6 +17,8 @@ const schema = z.object({
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),
   QDRANT_URL: z.string().min(1),
+  // The one Qdrant collection for every workspace (isolation is a filter inside it). Tests use a collection of their own.
+  QDRANT_COLLECTION: z.string().min(1).default("akp_chunks"),
   API_PORT: z.coerce.number().int().positive().default(3001),
   // Signs the session cookie. At least 32 characters, random, never committed.
   JWT_SECRET: z.string().min(32, "generate one with: node -e \"console.log(require('crypto').randomBytes(48).toString('base64url'))\""),

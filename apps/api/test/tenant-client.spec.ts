@@ -233,6 +233,25 @@ describe("forWorkspace against the real database", () => {
     expect(await ctx.prisma.chunkEmbedding.count({ where: { contentHash: "hash-b" } })).toBe(2);
   });
 
+  it("scopes evaluation runs the same way: another workspace's runs are invisible, untouchable and cannot be planted", async () => {
+    const { wa, wb } = await twoWorkspacesWithDocuments();
+    const run = (workspaceId: string, label: string) => ({
+      workspaceId, label, strategy: "paragraph", setupId: "m|768|w", retrieval: "qdrant", k: 5, questionSet: "set", questionFileHash: "h",
+      questionCount: 1, answerableCount: 1, hitRate1: 1, hitRate3: 1, hitRate5: 1, mrr: 1, config: {}, results: [],
+    });
+    await ctx.prisma.evalRun.create({ data: run(wa, "run-a") });
+    const runB = await ctx.prisma.evalRun.create({ data: run(wb, "run-b") });
+
+    const db = forWorkspace(ctx.prisma, wa);
+    expect((await db.evalRun.findMany()).map((r) => r.label)).toEqual(["run-a"]);
+    expect(await db.evalRun.findUnique({ where: { id: runB.id } })).toBeNull();
+    expect((await db.evalRun.deleteMany({ where: { id: runB.id } })).count).toBe(0);
+    expect(await ctx.prisma.evalRun.count({ where: { workspaceId: wb } })).toBe(1);
+
+    await db.evalRun.create({ data: run(wb, "planted") }); // names the other workspace
+    expect((await ctx.prisma.evalRun.findFirstOrThrow({ where: { label: "planted" } })).workspaceId).toBe(wa);
+  });
+
   it("scopes the queries inside a transaction too, and a failure rolls everything back", async () => {
     const { wa, wb, docA } = await twoWorkspacesWithDocuments();
     const db = forWorkspace(ctx.prisma, wa);

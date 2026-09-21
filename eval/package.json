@@ -1,5 +1,9 @@
 {
   "name": "@akp/eval",
   "version": "0.0.1",
-  "private": true
+  "private": true,
+  "scripts": {
+    "build-corpus": "bun run build-corpus.mjs",
+    "load-corpus": "bun run load-corpus.mjs"
+  }
 }

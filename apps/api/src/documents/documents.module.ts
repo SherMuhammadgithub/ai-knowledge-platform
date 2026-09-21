@@ -4,6 +4,7 @@ import { ENV } from "../config/config.module";
 import type { Env } from "../config/env";
 import { EmbeddingModule } from "../embedding/embedding.module";
 import { QueueModule } from "../queue/queue.module";
+import { VectorModule } from "../vector/vector.module";
 import { DocumentsController } from "./documents.controller";
 import { DocumentsService } from "./documents.service";
 
@@ -11,6 +12,7 @@ import { DocumentsService } from "./documents.service";
   imports: [
     QueueModule,
     EmbeddingModule,
+    VectorModule,
     MulterModule.registerAsync({
       inject: [ENV],
       // Memory storage, capped. The upload library rejects a bigger file with 413 while it is still arriving.

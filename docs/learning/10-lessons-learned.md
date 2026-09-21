@@ -71,3 +71,13 @@ Things that went wrong or surprised us, kept short. Newest at the bottom. Each o
 - **Fake the provider in every test app.** It keeps tests fast and free, and means no test can send text to a real service.
 - **Scores are relative.** A question with no answer scored higher than a correct one (0.68 against 0.64). Design refusal and evaluation around that, not around a cutoff.
 - **Interactive beats quoting on Windows.** `bun run <script> "words with spaces"` broke because of the space in the user folder. A script that asks for its input avoids the problem.
+
+## Milestone 6
+
+- **Check a new dependency's behaviour with a throwaway experiment.** The docs pages were partly missing. A ten minute test with made-up vectors settled id types, overwrite on upsert, delete by filter, exact mode and the small-collection full scan, without touching project data.
+- **"Public" is not "free to reuse".** Of five candidate corpora, two had no licence or contradictory ones. Read the licence text, and record it.
+- **Judge retrieval at the level of the answer.** Six questions all found the right guide, which sounds perfect, and hid whether the right chunk was first. Chunk 1 ranked first every time.
+- **A test can prove wiring and not quality.** Qdrant matched the exact loop, but at our size Qdrant searches exactly too, so the match says nothing about its approximate index. Say so.
+- **Two stores cannot share a transaction.** Keep one authoritative, write the other last, and give people a check that compares them.
+- **Wrap errors from another system.** An HTTP status from Qdrant would have been mistaken for a status from the embedding provider.
+- **Fake data can tie.** Equal scores made two exact searches order results differently. Compare scores, and ids where the score is not tied.

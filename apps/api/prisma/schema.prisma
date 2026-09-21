@@ -58,6 +58,7 @@ model Workspace {
   documentPages   DocumentPage[]
   documentChunks  DocumentChunk[]
   chunkEmbeddings ChunkEmbedding[]
+  evalRuns        EvalRun[]
 
   @@map("workspaces")
 }
@@ -173,4 +174,33 @@ model ChunkEmbedding {
 
   @@unique([workspaceId, contentHash, setupId])
   @@map("chunk_embeddings")
+}
+
+// One evaluation run (Milestone 6): which questions were asked, what search returned for each, and the scores.
+// Every number quoted in the docs comes from a row here, and the same run is written to eval/runs/ as a JSON file.
+// Tenant-owned like everything else: only reached through the workspace-scoped client.
+model EvalRun {
+  id               String   @id @default(uuid(7))
+  workspaceId      String   @map("workspace_id")
+  label            String? // free text from the person who ran it, for example "baseline"
+  strategy         String // chunking strategy whose chunks were searched
+  setupId          String   @map("setup_id") // embedding setup the vectors were made with
+  retrieval        String // "qdrant" or "exact" (the plain loop)
+  k                Int // how many chunks were retrieved per question
+  questionSet      String   @map("question_set") // name inside the question file
+  questionFileHash String   @map("question_file_hash") // SHA-256 of the question file as it was when run
+  questionCount    Int      @map("question_count") // questions that were run
+  answerableCount  Int      @map("answerable_count") // the ones the scores are computed from
+  hitRate1         Float    @map("hit_rate_1")
+  hitRate3         Float    @map("hit_rate_3")
+  hitRate5         Float    @map("hit_rate_5")
+  mrr              Float
+  config           Json // chunk settings, chunk sizes actually stored, the documents searched, score ranges
+  results          Json // one entry per question: what was retrieved and whether it was a hit
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@map("eval_runs")
 }

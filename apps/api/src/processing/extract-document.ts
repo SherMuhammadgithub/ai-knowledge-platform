@@ -19,7 +19,7 @@ const MIN_CHARS = 20;
 
 function decodeText(bytes: Buffer): string {
   // Upload already checked that this is valid UTF-8. Drop a byte order mark if there is one.
-  return new TextDecoder("utf-8").decode(bytes).replace(/^﻿/, "");
+  return new TextDecoder("utf-8").decode(bytes).replace(/^\uFEFF/, "");
 }
 
 /**

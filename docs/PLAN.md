@@ -140,3 +140,15 @@ Source: the Gemini embeddings docs page (read through a fetch tool), plus real c
 - Several texts in one call must be separate content entries, or the API returns one merged vector.
 - `countTokens` accepts `gemini-embedding-2`. The embed call itself does not report token counts.
 - Measured: characters / 4 over-estimates English prose by up to about 19% and under-estimates codes and numbers by up to 72%. See `docs/learning/milestones/M05-chunking-and-embeddings/checkpoint-a-results.md`.
+
+## Qdrant facts, verified 2026-09-21 (Milestone 6, Checkpoint A)
+
+Source: Qdrant docs (multi-tenancy guide, collections, search), plus a throwaway experiment with the official JS client against the local server. Nothing in the project was touched.
+
+- Server v1.19.1 (Docker). Client `@qdrant/js-client-rest` 1.19.0 (official, Apache-2.0, needs Node 22 or newer).
+- Multi-tenancy: one collection, a keyword payload index on the tenant field created with `is_tenant: true`, and a filter on that field in every search. The filter is applied during the search (checked). `payload_m` and `m: 0` are for very many tenants and are not needed here.
+- Point ids must be a UUID or an unsigned integer (a plain string gives 400). Upserting an existing id overwrites its vector and payload. Wrong vector size gives 400.
+- Cosine scores range from -1 to 1 and ignore vector length. `score_threshold` works. `params: { exact: true }` runs an exact search.
+- Delete works by ids and by filter.
+- Defaults: HNSW `m` 16, `ef_construct` 100, `full_scan_threshold` 10000. Below that size Qdrant scans everything, so a small collection is searched exactly.
+- Corpus candidates and their licences: `eval/corpus/LICENSES.md`.

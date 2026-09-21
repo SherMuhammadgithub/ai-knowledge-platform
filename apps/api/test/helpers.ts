@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,6 +16,7 @@ import { DocumentProcessorService } from "../src/processing/document-processor.s
 import { ProcessingModule } from "../src/processing/processing.module";
 import { DocumentQueueService } from "../src/queue/document-queue.service";
 import { setupApp } from "../src/setup-app";
+import { VectorIndexService } from "../src/vector/vector-index.service";
 import { FakeEmbeddingClient } from "./fake-embeddings";
 
 export const TEST_JWT_SECRET = "test-secret-test-secret-test-secret-1234";
@@ -27,6 +29,8 @@ export type TestContext = {
   indexer: DocumentIndexerService;
   /** Every test app uses this instead of the real provider, so tests never call one. */
   embeddings: FakeEmbeddingClient;
+  /** The real Qdrant, with a collection of this test app's own (dropped when the app closes). */
+  vectorIndex: VectorIndexService;
   queue: DocumentQueueService;
 };
 
@@ -52,7 +56,8 @@ export async function createTestApp(): Promise<TestContext> {
     GEMINI_MAX_RETRIES: 0,
     DATABASE_URL: url,
     REDIS_URL: process.env.REDIS_URL ?? "redis://localhost:6379",
-    QDRANT_URL: "http://unused",
+    QDRANT_URL: process.env.QDRANT_URL ?? "http://localhost:6333",
+    QDRANT_COLLECTION: `akp_test_${randomUUID().slice(0, 8)}`,
     API_PORT: 0,
     JWT_SECRET: TEST_JWT_SECRET,
     SESSION_DAYS: 7,
@@ -79,6 +84,7 @@ export async function createTestApp(): Promise<TestContext> {
   await app.init();
   const close = app.close.bind(app);
   app.close = async () => {
+    await app.get(VectorIndexService).dropCollection();
     await close();
     rmSync(storageDir, { recursive: true, force: true });
   };
@@ -89,12 +95,13 @@ export async function createTestApp(): Promise<TestContext> {
     processor: app.get(DocumentProcessorService),
     indexer: app.get(DocumentIndexerService),
     embeddings,
+    vectorIndex: app.get(VectorIndexService),
     queue: app.get(DocumentQueueService),
   };
 }
 
 export async function resetDb(prisma: PrismaService) {
-  await prisma.$executeRawUnsafe("TRUNCATE TABLE chunk_embeddings, document_chunks, document_pages, documents, memberships, workspaces, users RESTART IDENTITY CASCADE");
+  await prisma.$executeRawUnsafe("TRUNCATE TABLE eval_runs, chunk_embeddings, document_chunks, document_pages, documents, memberships, workspaces, users RESTART IDENTITY CASCADE");
 }
 
 /** A supertest agent keeps cookies between calls, like a browser. */

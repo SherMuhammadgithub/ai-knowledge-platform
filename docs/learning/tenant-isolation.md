@@ -94,10 +94,19 @@ Vector search gets the same treatment: an indexed `workspace_id` payload filter 
 ## Added in Milestone 5: chunks, vectors and the cache
 
 - **Chunks and vectors are tenant tables.** `document_chunks` and `chunk_embeddings` carry a workspace id, are registered in `TENANT_MODELS`, and are only reached through the scoped client. The guard test that looks for plain-client use now builds its pattern from that list, so a new tenant table is covered automatically.
+- **Evaluation runs are a tenant table too.** `eval_runs` (Milestone 6) carries a workspace id and is in `TENANT_MODELS`. A test checks that another workspace's runs are invisible, cannot be deleted, and cannot be planted, and that a run over one workspace never sees another workspace's documents.
 - **The embedding cache is per workspace, on purpose.** A cache shared across workspaces would save quota, but it would let one workspace's stored text change the cost and timing of another's. The price of isolation is that the same text in two workspaces is embedded twice. Tests check both directions.
 - **Search is scoped like everything else.** The plain search reads chunks and vectors through the scoped client, so a question can only find its own workspace's text, even when another workspace holds a closer match. A test plants a closer document in another workspace.
 - **Derived data is deleted with its source.** A vector is made from a document's text. When the document is deleted, its vectors go too, except one that another chunk in the same workspace still uses.
 - **Sending text to a provider is a data decision.** The backfill script embeds only fictional sample documents by default and lists everything else as skipped. Uploads are embedded like any other document, and the upload screen says "public documents only".
+
+## Added in Milestone 6: the search index
+
+- **One collection, a filter inside it.** Qdrant holds every workspace's points. The workspace is a payload field with the tenant index, and every search filters on it while it runs. Filtering afterwards would leave a workspace with nothing when another workspace's chunks are closer, and would touch data it should never read.
+- **The filter cannot be left out.** The search function takes a workspace-scoped client and reads `db.workspaceId` from it. There is no parameter that could name another workspace. A test first shows that an unfiltered search returns another workspace's chunk as the best match, then that the real search never does.
+- **No text in the index.** The payload is ids and positions. Results read their text from Postgres through the scoped client, so a stale point can never show text that was deleted.
+- **Setup and strategy are part of the filter** so vectors made by another model, wording or chunking never mix in.
+- **Deleting a document deletes its points,** and a consistency check finds any that were left behind.
 
 ## Interview questions
 

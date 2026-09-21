@@ -22,7 +22,10 @@
     "samples": "bun run src/scripts/make-demo-files.ts",
     "chunks:rebuild": "bun --env-file=../../.env run src/scripts/chunks-rebuild.ts",
     "embed:backfill": "bun --env-file=../../.env run src/scripts/embed-backfill.ts",
-    "search": "bun --env-file=../../.env run src/scripts/search.ts"
+    "qdrant:sync": "bun --env-file=../../.env run src/scripts/qdrant-sync.ts",
+    "search": "bun --env-file=../../.env run src/scripts/search.ts",
+    "eval:check": "bun --env-file=../../.env run src/scripts/eval-run.ts --check",
+    "eval:run": "bun --env-file=../../.env run src/scripts/eval-run.ts"
   },
   "dependencies": {
     "@google/genai": "^2.23.0",
@@ -33,6 +36,7 @@
     "@node-rs/argon2": "^2.2.1",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
+    "@qdrant/js-client-rest": "1.19.0",
     "bullmq": "^6.3.8",
     "cookie-parser": "^1.4.7",
     "fflate": "^0.8.3",

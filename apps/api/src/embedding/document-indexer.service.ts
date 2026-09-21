@@ -6,6 +6,8 @@ import { statusOf } from "../llm/resilience";
 import type { TenantDb } from "../prisma/tenant-client";
 import { TenantPrismaService } from "../prisma/tenant-prisma.service";
 import type { DocumentJob } from "../queue/queue.constants";
+import type { ChunkStrategy } from "../chunking";
+import { VectorIndexService } from "../vector/vector-index.service";
 import { ChunkEmbedder } from "./chunk-embedder";
 import { EMBEDDINGS } from "./embedding.tokens";
 
@@ -14,7 +16,7 @@ export type IndexOutcome = "ready" | "failed" | "skipped";
 
 export type IndexAttempt = { number: number; max: number };
 
-const TEMPORARY_FAILURE = "Creating embeddings kept failing because of a temporary problem. Try again in a few minutes.";
+const TEMPORARY_FAILURE = "Creating embeddings or adding them to the search index kept failing because of a temporary problem. Try again in a few minutes.";
 
 // Prisma error codes for "the row is gone".
 const isRecordGone = (err: unknown) => ["P2025", "P2003"].includes((err as { code?: string })?.code ?? "");
@@ -35,7 +37,8 @@ function permanentReason(err: unknown): string | undefined {
 }
 
 /**
- * The second step of the pipeline: gives a document's chunks their vectors, then marks the document Ready.
+ * The second step of the pipeline: gives a document's chunks their vectors, adds them to the search index, then marks
+ * the document Ready. Ready therefore means "searchable": the vectors are in Qdrant.
  * Runs in the worker, on its own queue, because a large document can take many minutes on the free tier.
  *
  * Like the processor, it is safe to run twice: it only does work for chunks that lack a vector, so a retry after a
@@ -45,13 +48,16 @@ function permanentReason(err: unknown): string | undefined {
 export class DocumentIndexerService {
   private readonly log = new Logger(DocumentIndexerService.name);
   private readonly embedder: ChunkEmbedder;
+  private readonly strategy: ChunkStrategy;
 
   constructor(
     private readonly tenant: TenantPrismaService,
+    private readonly vectorIndex: VectorIndexService,
     @Inject(EMBEDDINGS) client: EmbeddingClient,
     @Inject(ENV) env: Env,
   ) {
-    this.embedder = new ChunkEmbedder(client, env.CHUNK_STRATEGY);
+    this.strategy = env.CHUNK_STRATEGY;
+    this.embedder = new ChunkEmbedder(client, this.strategy);
   }
 
   async index(job: DocumentJob, attempt: IndexAttempt = { number: 1, max: 1 }): Promise<IndexOutcome> {
@@ -71,9 +77,12 @@ export class DocumentIndexerService {
           await db.document.update({ where: { id: doc.id }, data: { statusDetail: `Embedding ${embedded} of ${total} chunks` } });
         },
       });
+      // Last step: the search index. If Qdrant is down this throws, the document stays Indexing, and the queue retries.
+      await db.document.update({ where: { id: doc.id }, data: { statusDetail: "Adding to the search index" } });
+      const synced = await this.vectorIndex.syncDocument(db, doc.id, this.embedder.setupId, this.strategy);
       await db.document.update({ where: { id: doc.id }, data: { status: "READY", statusDetail: null } });
       this.log.log(
-        `Document ${doc.id}: ${result.total} chunks, ${result.newVectors} embedded in ${result.calls} call(s), ${result.reusedFromCache} reused from the cache`,
+        `Document ${doc.id}: ${result.total} chunks, ${result.newVectors} embedded in ${result.calls} call(s), ${result.reusedFromCache} reused from the cache, ${synced.written} points in the search index`,
       );
       return "ready";
     } catch (err) {

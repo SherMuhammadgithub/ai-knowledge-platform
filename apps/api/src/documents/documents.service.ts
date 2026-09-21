@@ -19,6 +19,7 @@ import type { Env } from "../config/env";
 import { TenantPrismaService } from "../prisma/tenant-prisma.service";
 import { DocumentQueueService } from "../queue/document-queue.service";
 import { STORAGE, type StorageService } from "../storage/storage.service";
+import { VectorIndexService } from "../vector/vector-index.service";
 import {
   cleanFileName,
   detectKind,
@@ -88,6 +89,7 @@ export class DocumentsService {
     private readonly queue: DocumentQueueService,
     @Inject(STORAGE) private readonly storage: StorageService,
     @Inject(EMBEDDINGS) private readonly embeddings: EmbeddingClient,
+    private readonly vectorIndex: VectorIndexService,
     @Inject(ENV) env: Env,
   ) {
     this.strategy = env.CHUNK_STRATEGY;
@@ -295,6 +297,11 @@ export class DocumentsService {
 
     await db.document.delete({ where: { id } }); // its pages and chunks go with it (cascade)
     await this.removeOrphanVectors(db, hashes);
+    // The search index copy goes too. If Qdrant is unreachable the row is already gone, so a search cannot return this
+    // document (the text is read from Postgres), and the consistency script removes the leftover points.
+    await this.vectorIndex.deleteDocument(actor.workspaceId, id).catch((err) => {
+      this.log.warn(`Could not remove the search index points of document ${id}: ${String(err)}`);
+    });
     // Row first, file second. A failure here leaves a harmless orphan file, never a row pointing at nothing.
     await this.storage.delete(doc.storageKey).catch((err) => {
       this.log.warn(`Could not delete file ${doc.storageKey}: ${String(err)}`);

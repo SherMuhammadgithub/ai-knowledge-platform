@@ -90,6 +90,10 @@ Reading a file takes well under a second. Creating vectors for it can take minut
 
 Files: `apps/api/src/embedding/`, `apps/api/src/queue/`, `apps/api/src/worker/document.worker.ts`, `apps/api/test/indexing.e2e.spec.ts`.
 
+## Added in Milestone 6: the last step is the search index
+
+The embedding job ends by writing the document's points to Qdrant, then marks it Ready. If Qdrant is down, the document stays Indexing, the queue retries, and the vectors already made are kept, so only the index step repeats. Writing points is repeatable because a point's id is the chunk id.
+
 ## Interview questions
 
 1. Why use a queue and a separate worker instead of processing during the upload request?

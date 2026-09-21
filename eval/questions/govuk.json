@@ -1,0 +1,430 @@
+{
+  "name": "govuk-employment-v1",
+  "description": "Questions about the 7 GOV.UK employment guides in eval/corpus/govuk (Open Government Licence v3.0). Drafted by Claude from reading the guides. On 2026-09-21 the project owner asked Claude to choose keep or drop: Claude did, judging only whether a real employee could ask the question, before any search results existed. No human reworded or reviewed the questions, so the wording stays close to the guides and scores may lean high.",
+  "howToReview": [
+    "For each question set status to \"keep\" or \"drop\". Do not judge a question by whether search gets it right: keep it if a real employee could ask it. Choosing questions because search handles them would make the score look better than the search is.",
+    "You may reword the question. Real people do not copy the guide's words, so change any question that sounds like the guide.",
+    "Check the quote: it must be a short exact piece of the guide that answers the question. If a question has more than one good passage, add another answer. Run bun run --cwd apps/api eval:check to test your quotes.",
+    "answerable false means the guides do not answer it, and answers must then be empty.",
+    "Keep about 20 in total, including at least 4 unanswerable ones."
+  ],
+  "questions": [
+    {
+      "id": "q01",
+      "status": "keep",
+      "question": "What is the minimum paid time off I'm legally allowed each year?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-holiday-entitlement-rights.txt",
+          "quote": "are legally entitled to 5.6 weeks' paid holiday a year"
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q02",
+      "status": "keep",
+      "question": "I work three days a week. How many days of holiday should I get?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-holiday-entitlement-rights.txt",
+          "quote": "they must get at least 16.8 days' leave a year"
+        }
+      ],
+      "kind": "number inside a long guide"
+    },
+    {
+      "id": "q03",
+      "status": "drop",
+      "question": "Can I ask to be paid cash instead of taking my holiday?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-holiday-entitlement-rights.txt",
+          "quote": "The only time someone can get paid in place of taking statutory leave"
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q04",
+      "status": "keep",
+      "question": "I was off sick most of last year and could not use my holiday. How much can I carry over?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-holiday-entitlement-rights.txt",
+          "quote": "up to 20 of their 28 days' leave entitlement if they work regular hours for the whole year"
+        }
+      ],
+      "kind": "number inside a long guide"
+    },
+    {
+      "id": "q05",
+      "status": "drop",
+      "question": "How far ahead do I have to ask before booking a week off?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-holiday-entitlement-rights.txt",
+          "quote": "at least twice as long as the amount of leave a worker wants to take, plus 1 day"
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q06",
+      "status": "keep",
+      "question": "Does my holiday still build up while I'm on maternity leave?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-holiday-entitlement-rights.txt",
+          "quote": "The leave year and holiday entitlement is not affected by maternity, paternity or adoption leave"
+        },
+        {
+          "document": "govuk-holiday-entitlement-rights.txt",
+          "quote": "build up holiday entitlement during certain types of leave, such as maternity"
+        },
+        {
+          "document": "govuk-maternity-pay-leave.txt",
+          "quote": "build up (accrue) holiday"
+        }
+      ],
+      "kind": "several guides answer it",
+      "note": "Three passages in two guides answer this. Any of them counts."
+    },
+    {
+      "id": "q07",
+      "status": "drop",
+      "question": "What's the most I can be paid per week if I'm too ill to work?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-statutory-sick-pay.txt",
+          "quote": "You can get up to £123.25 per week Statutory Sick Pay"
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q08",
+      "status": "keep",
+      "question": "When do I have to hand in a doctor's note?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-statutory-sick-pay.txt",
+          "quote": "You must give your employer a fit note if you're off work for more than 7 days in a row"
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q09",
+      "status": "keep",
+      "question": "My sick pay is running out but I'm still ill. What paperwork should my employer give me?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-statutory-sick-pay.txt",
+          "quote": "If your SSP is ending, your employer must send you form SSP1"
+        }
+      ],
+      "kind": "asks for a document, not a number"
+    },
+    {
+      "id": "q10",
+      "status": "drop",
+      "question": "What's the most hours I can be made to work in a week?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-maximum-weekly-working-hours.txt",
+          "quote": "You cannot work more than 48 hours a week on average"
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q11",
+      "status": "keep",
+      "question": "Is my lunch break counted as working time?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-maximum-weekly-working-hours.txt",
+          "quote": "breaks when no work is done, for example lunch breaks"
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q12",
+      "status": "keep",
+      "question": "How much notice do I have to give to cancel an agreement to work extra hours?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-maximum-weekly-working-hours.txt",
+          "quote": "You must give your employer at least 7 days' notice."
+        }
+      ],
+      "kind": "same number in several guides",
+      "note": "The number 7 days also appears in the sick pay and maternity guides, so a search can land in the wrong guide."
+    },
+    {
+      "id": "q13",
+      "status": "keep",
+      "question": "How much redundancy pay do I get for each year of work if I'm over 41?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-redundancy-your-rights.txt",
+          "quote": "one and half week's pay for each full year you were 41 or older"
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q14",
+      "status": "drop",
+      "question": "How long do I need to have worked somewhere to get redundancy pay?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-redundancy-your-rights.txt",
+          "quote": "you've been working for your current employer for 2 years or more"
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q15",
+      "status": "keep",
+      "question": "Do I pay tax on my redundancy money?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-redundancy-your-rights.txt",
+          "quote": "Statutory redundancy pay under £30,000 is not taxable."
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q16",
+      "status": "keep",
+      "question": "If I'm offered a different job instead of being made redundant, can I try it out before deciding?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-redundancy-your-rights.txt",
+          "quote": "You have the right to a 4-week trial period for any alternative employment you're offered."
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q17",
+      "status": "keep",
+      "question": "Do I get paid for the time I spend at job interviews while working my notice?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-redundancy-your-rights.txt",
+          "quote": "the most your employer has to pay you is 40% of one week's pay"
+        }
+      ],
+      "kind": "number inside a long guide"
+    },
+    {
+      "id": "q18",
+      "status": "drop",
+      "question": "When do the special rules for laying off lots of people at once start to apply?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-redundancy-your-rights.txt",
+          "quote": "making 20 or more redundancies at the same time, the collective redundancy rules apply"
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q19",
+      "status": "keep",
+      "question": "How early before my due date can I start my maternity leave?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-maternity-pay-leave.txt",
+          "quote": "the earliest you can start your leave is 11 weeks before the expected week of childbirth"
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q20",
+      "status": "keep",
+      "question": "I'm pregnant. How long before the due date do I have to tell my employer I want to take leave?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-maternity-pay-leave.txt",
+          "quote": "At least 15 weeks before your due date, tell your employer when the baby is due"
+        }
+      ],
+      "kind": "same number in several guides",
+      "note": "Paternity has the same 15 weeks. The question says 'I'm pregnant' so it is the maternity guide."
+    },
+    {
+      "id": "q21",
+      "status": "keep",
+      "question": "My partner is expecting. When do I need to tell my boss the due date so I can take my time off?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-paternity-pay-leave.txt",
+          "quote": "at least 15 weeks before the baby is due"
+        },
+        {
+          "document": "govuk-paternity-pay-leave.txt",
+          "quote": "at least 15 weeks before the baby is expected"
+        }
+      ],
+      "kind": "same number in several guides",
+      "note": "Maternity has the same 15 weeks. The question says 'my partner is expecting' so it is the paternity guide."
+    },
+    {
+      "id": "q22",
+      "status": "keep",
+      "question": "How much is the weekly pay for a new dad taking time off?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-paternity-pay-leave.txt",
+          "quote": "The statutory weekly rate of Paternity Pay is £194.32"
+        }
+      ],
+      "kind": "same number in several guides",
+      "note": "Maternity pay has the same 194.32 figure. Only the paternity guide answers 'a new dad'."
+    },
+    {
+      "id": "q23",
+      "status": "drop",
+      "question": "Can a new dad split his time off into two separate weeks?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-paternity-pay-leave.txt",
+          "quote": "take them separately in one-week blocks"
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q24",
+      "status": "drop",
+      "question": "How long can I take off to go to a scan with my pregnant partner?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-paternity-pay-leave.txt",
+          "quote": "You can take up to 6 and a half hours per appointment."
+        }
+      ],
+      "kind": "detail near other similar text",
+      "note": "The same sentence appears for adoption appointments in the same guide, and either counts."
+    },
+    {
+      "id": "q25",
+      "status": "keep",
+      "question": "Can I ask to work from home from my very first day at a new job?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-flexible-working.txt",
+          "quote": "Employees can make a request for flexible working from their first day in a job."
+        },
+        {
+          "document": "govuk-flexible-working.txt",
+          "quote": "Employees can apply for flexible working from their first day in a job."
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q26",
+      "status": "drop",
+      "question": "How many times a year can I ask for a change to my hours?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-flexible-working.txt",
+          "quote": "Employees can make 2 applications for flexible working in any 12-month period."
+        }
+      ],
+      "kind": "plain"
+    },
+    {
+      "id": "q27",
+      "status": "keep",
+      "question": "My boss said no to my request to change my hours. Can I take them to a tribunal for that alone?",
+      "answerable": true,
+      "answers": [
+        {
+          "document": "govuk-flexible-working.txt",
+          "quote": "Employees cannot complain to a tribunal just because their flexible working request was refused."
+        }
+      ],
+      "kind": "detail near other similar text"
+    },
+    {
+      "id": "q28",
+      "status": "keep",
+      "question": "What is the current national minimum wage?",
+      "answerable": false,
+      "answers": [],
+      "kind": "not in the guides"
+    },
+    {
+      "id": "q29",
+      "status": "keep",
+      "question": "How much is Statutory Adoption Pay each week?",
+      "answerable": false,
+      "answers": [],
+      "kind": "not in the guides (only named, no details)",
+      "note": "The maternity guide names Statutory Adoption Leave and Pay but gives no amount."
+    },
+    {
+      "id": "q30",
+      "status": "keep",
+      "question": "How much notice do I have to give my employer if I want to resign?",
+      "answerable": false,
+      "answers": [],
+      "kind": "not in the guides (close to a topic they cover)",
+      "note": "The redundancy guide has notice periods, but for the employer ending a job, not for leaving."
+    },
+    {
+      "id": "q31",
+      "status": "drop",
+      "question": "How do I apply for Universal Credit?",
+      "answerable": false,
+      "answers": [],
+      "kind": "not in the guides (only named, no details)",
+      "note": "Universal Credit is named in two guides with no instructions."
+    },
+    {
+      "id": "q32",
+      "status": "keep",
+      "question": "How many days of paid leave do I get when a close family member dies?",
+      "answerable": false,
+      "answers": [],
+      "kind": "not in the guides (only named, no details)",
+      "note": "Parental bereavement leave is named in the paternity guide with no detail."
+    }
+  ]
+}

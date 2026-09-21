@@ -20,6 +20,7 @@ How to use it:
 | Milestone 5, before coding (2 questions) | not answered |
 | Milestone 5 quiz (6 questions) | not answered |
 | Milestone 5 exercises (3) | not done |
+| Milestone 6, before coding (2 questions) | not answered |
 
 Background reading for each part is in the other files in this folder: `09-production-ai.md` (Milestone 1), `tenant-isolation.md` (Milestones 2 and 3) `file-uploads.md` (Milestone 3), and `text-extraction.md` and `background-jobs.md` (Milestone 4).
 
@@ -519,4 +520,30 @@ A: the synonym question is the interesting one, it is where meaning search shoul
 B: with the smaller target, the chunks are different texts, so most are sent to Gemini. When you go back to 500 and 60, the chunks have the same text as before (the same fingerprints), so the cache answers and almost nothing is sent, unless you deleted the vectors. This is why the cache key is the text and the setup, not the document.
 
 C: `hits[0].score - hits[1].score`, when there are at least two hits. The gap says how clearly the top result stands out from the rest, which is what a person needs to judge. A high top score with no gap means several chunks are about equally close.
+</details>
+
+---
+
+## Milestone 6, before coding
+
+Concepts are in `docs/learning/milestones/M06-qdrant-retrieval-and-eval/concepts.md`. Answer before or after the milestone. Nothing waits on it.
+
+**1. A test set has 20 questions. For 8 of them the right chunk is ranked first, for 14 of them it is in the top 3, and for 6 it is not in the top 5. What are hit rate@1 and hit rate@3? Why can two searches with the same hit rate@3 still differ in quality?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+Hit rate@1 is 8 / 20 = 0.40. Hit rate@3 is 14 / 20 = 0.70. Two searches can have the same hit rate@3 and still differ: one may rank the right chunk first every time and the other third every time. Hit rate@3 cannot tell them apart. MRR can: it averages 1 / rank, so first place counts 1 and third place counts 0.33. Ranking matters because later steps read the top results first and the answer prompt has limited room. Also note that 20 questions is small: one question is 5 percentage points, so a difference of 0.05 between two runs is one question and should not be trusted.
+</details>
+
+**2. Workspace A has 3 relevant chunks for a question. Workspace B has 50 chunks that are even closer to it. A search asks for the top 5 and removes the results that are not in workspace A afterwards. What does A get, and what is wrong with the approach besides that?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+A gets nothing: the 5 closest chunks in the whole collection all belong to B, and removing them leaves an empty list, even though A has 3 good chunks. The second problem is privacy and isolation: the search touched B's data while working for A, and a small mistake in the removal step would leak it. The correct approach filters during the search, so only points where the workspace equals A are considered and the top 5 come from A's own chunks. The filter must be mandatory in the search function, with a test that fails when it is missing.
 </details>

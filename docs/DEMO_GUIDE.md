@@ -183,13 +183,22 @@ Needs the worker running with the Milestone 5 code (restart it after pulling), a
 6. The cache: run `bun run --cwd apps/api chunks:rebuild`. Every Ready row now says "not searchable yet". Then `bun run --cwd apps/api embed:backfill`: it sends 0 texts to Gemini and serves every chunk from the cache, and the rows say "searchable" again.
 7. Stop the worker (Ctrl+C) and upload a small file: it waits in **Uploaded**. Start the worker again: it goes through Processing, Indexing and Ready, because the job waited in the queue.
 
+### S. The search index (Qdrant)
+Needs the worker restarted with the Milestone 6 code. Run `bun run --cwd apps/api qdrant:sync` once first if the demo data was made earlier (it uses vectors already in the database and makes no Gemini calls).
+1. `bun run --cwd apps/api qdrant:sync --check` compares Postgres with Qdrant and changes nothing. Each workspace should say "in step".
+2. Open `http://localhost:6333/dashboard`, then the collection `akp_chunks`. Each point has a payload with ids and positions, and no text. Small collections show 0 indexed vectors: Qdrant searches them exactly.
+3. Upload `demo-files/equipment-policy.txt`. Its row goes Uploaded, Processing, Indexing ("Adding to the search index" may flash by), Ready. Run the check again: still "in step", with 4 more points in Acme Corp.
+4. `bun run --cwd apps/api search`, choose Acme Corp, ask a question about the equipment policy, or run `bun --env-file=../../.env run src/scripts/search.ts --workspace "Acme Corp" --compare "your question"` from `apps/api`. The line "Qdrant and the plain loop return the same chunks in the same order" confirms the two agree.
+5. Delete the equipment policy and run the check again: still "in step", so its points were removed with it.
+6. The evaluation corpus is in its own workspace: sign in as `eval@akp.test` (password `eval-password-123`) to see the seven GOV.UK guides. It is separate from the demo accounts and is not removed by `bun run seed`.
+
 ## 4. Automated tests
 
 ```
 bun run test
 ```
 
-203 tests run against a separate `akp_test` database (and a separate queue), never the dev ones. They cover sign up and sign in, forged and tampered cookies, roles, cross-workspace access, the immediate removal in check G, the workspace-scoped database client, file type detection, storage safety, duplicate and oversized uploads, and who may delete what. Also text extraction from real generated PDF and Word files, every cleaning rule, the zip-bomb guard, the queue with a real worker, retries, the sweeper, and a job that names the wrong workspace. Also the chunkers (including a test on 300 random pages), chunks saved and replaced together with the pages, and chunks kept separate per workspace. Also the token limiter, vector storage, the embedding step with a fake provider (progress, the cache, retries, errors that can never work, model change, deleting vectors with documents), search isolation, and both workers end to end. No test calls a real embedding provider.
+221 tests run against a separate `akp_test` database (and a separate queue), never the dev ones. They cover sign up and sign in, forged and tampered cookies, roles, cross-workspace access, the immediate removal in check G, the workspace-scoped database client, file type detection, storage safety, duplicate and oversized uploads, and who may delete what. Also text extraction from real generated PDF and Word files, every cleaning rule, the zip-bomb guard, the queue with a real worker, retries, the sweeper, and a job that names the wrong workspace. Also the chunkers (including a test on 300 random pages), chunks saved and replaced together with the pages, and chunks kept separate per workspace. Also the token limiter, vector storage, the embedding step with a fake provider (progress, the cache, retries, errors that can never work, model change, deleting vectors with documents), search isolation, and both workers end to end. No test calls a real embedding provider. The search index tests use the real Qdrant, each with a collection of its own that is deleted afterwards.
 
 ## 5. Reset the demo data
 

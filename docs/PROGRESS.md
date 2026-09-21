@@ -1,7 +1,7 @@
 # Progress
 
-**Current milestone:** 5 (Chunking and embeddings) is built and checked (2026-09-20). Quizzes for Milestones 1 to 5 are unanswered in `docs/learning/QUIZ.md` and do not block anything. Milestone 6 (Qdrant retrieval and the mini evaluation) is next, on the user's go.
-**Next action:** the user reads `docs/learning/milestones/M05-chunking-and-embeddings/checkpoint-c-results.md` and says whether to plan Milestone 6 (concepts and plan first, as agreed). Their quiz answers are optional.
+**Current milestone:** 6 (Qdrant retrieval and the mini evaluation), started 2026-09-21. Checkpoints A and B are done. Quizzes for Milestones 1 to 6 are unanswered in `docs/learning/QUIZ.md` and do not block anything.
+**Next action:** the user answers two questions in `checkpoint-c-results.md`: (1) write 8 to 10 harder questions before Checkpoint D (optional, about 30 minutes, recommended), (2) go for Checkpoint D (heading detection, three-way chunking comparison).
 
 ## Milestones
 
@@ -149,6 +149,34 @@ Known gaps, on purpose:
 - The Chunks tab shows only the configured strategy. Comparing strategies in the app is planned for the start of Milestone 6.
 - Chunk sizes are starting guesses. Milestone 6 measures them.
 
+## Milestone 6 checklist (Qdrant retrieval and the mini evaluation, 2026-09-21)
+
+Plan and checkpoints: `docs/learning/milestones/M06-qdrant-retrieval-and-eval/README.md`.
+
+Checkpoint A (done): Qdrant docs read and every behaviour we depend on checked by experiment (`docs/PLAN.md`). Corpus chosen and built: GOV.UK employment guidance, 7 documents (Open Government Licence v3.0, `eval/corpus/LICENSES.md`), loaded into its own workspace, 36 chunks, all embedded. Foundation review agreed. Results: `checkpoint-a-results.md`.
+
+Checkpoint B (done and confirmed live):
+- [x] Qdrant client pinned to 1.19.0. One collection (`QDRANT_COLLECTION`, default `akp_chunks`), cosine, 768 dimensions, tenant index on `workspace_id`, indexes on `document_id`, `strategy`, `setup_id`. Point id is the chunk id. Payload has ids and positions only
+- [x] `VectorIndexService`: write a document's points then remove stale ones, delete a document's points, search with a filter on workspace (from the scoped client), setup and strategy that cannot be left out, counts
+- [x] Ready now means "vectors made and in Qdrant". Qdrant down means the document stays Indexing and the queue retries. The API still starts with Qdrant down
+- [x] Deleting a document deletes its points. If Qdrant is unreachable the document is still deleted and `qdrant:sync` cleans up
+- [x] `qdrant:sync` (and `--check`), search through Qdrant with `--exact` and `--compare`
+- [x] Real data: sync wrote 48 points with no Gemini calls, six baseline questions return the same chunks, order and scores as the exact loop
+- [x] 221 API tests (18 new, real Qdrant), 13 deliberate breaks all caught, typecheck clean
+- [x] Live upload through the restarted worker: two files went Uploaded, Indexing ("Adding to the search index"), Ready in under 5 seconds, `qdrant:sync --check` said in step (11 points), search agreed with the exact loop, deleting both removed their points
+
+Known gaps, on purpose: the collection is too small for Qdrant to build its approximate index (0 indexed vectors), so the parity test proves wiring, not index quality. Postgres and Qdrant cannot be changed in one transaction, so `qdrant:sync --check` exists. A worker that has not been restarted after this change would make documents Ready without points, and `qdrant:sync` repairs that.
+
+Checkpoint C (done):
+- [x] Table `eval_runs` (tenant-owned, in `TENANT_MODELS`, isolation test) and migration `eval_runs`
+- [x] `apps/api/src/evaluation/`: question file schema, quote matching (curly quotes, case and line breaks ignored), hit judging (document and quote), hit rate@1/3/5, MRR@5, top-score ranges for answerable and unanswerable questions, `checkQuotes`, `runEvaluation`, `saveRun`, `writeRunFile`
+- [x] Scripts `eval:check` (no Gemini call) and `eval:run`. The run refuses when a quote is not in its document, when Qdrant and Postgres disagree, or when chunks have no vectors under the current setup
+- [x] 32 candidate questions in `eval/questions/govuk.json` (27 answerable, 5 not), every quote tested against the guides and found in a single chunk of the real corpus (`eval:check`)
+- [x] 258 API tests pass (37 new: 22 unit, 14 against real Postgres and Qdrant, 1 tenant isolation). 22 deliberate breaks: 21 caught, 1 changes nothing (unanswerable questions given a rank, already impossible because their hit flag is false). Two gaps found and closed: a test where every score was 1.0 could not see swapped columns, and the isolation of the new table
+- [x] Live check with real Gemini and Qdrant on 3 throwaway questions (not in the set): one batch embedding call of 1.4 s, search, scores, a database row and a JSON file. The throwaway run was then deleted so it cannot be mistaken for a baseline
+- [x] Questions chosen: at the user's request Claude set keep (22: 18 answerable, 4 unanswerable) or drop (10), judging only realism, before any search results. Not human-reviewed or reworded: the set may flatter search, and results must say so
+- [x] Baseline run on `paragraph` chunks, stored (row `01a0c330-573c-746f-813d-363f36c69d2e`, `eval/runs/2026-09-21T08-58-40-paragraph-baseline.json`): hit rate @1 88.9% (16 of 18), @3 100%, @5 100%, MRR 0.944, 0 quotes cut by chunking. Top score 0.665 to 0.798 when answerable, 0.627 to 0.717 when not (ranges overlap). Results in `checkpoint-c-results.md`. Limits: 22 questions chosen by the assistant, 36 chunks, hit rate @5 is guaranteed for guides with 5 or fewer chunks
+
 ## Environment (checked 2026-09-19)
 
 Node v22.18.0, Bun 1.4.0, Docker 29.4.0, Git 2.51.0, Python 3.13.7. Host port 5432 is used by something else on the dev machine.
@@ -212,3 +240,8 @@ All quiz questions and exercises live in `docs/learning/QUIZ.md`, with a place f
 - 2026-09-20 (M5): `bun run <script> "words with spaces"` breaks on Windows when the user folder has a space. An interactive script (asks for input) avoids it.
 - 2026-09-20 (M5): Every test app uses a fake embedding provider. A test that could call the real one would send text out and depend on quota.
 - 2026-09-20 (M5): Changing what a status means (Ready now means searchable) touches the seed, the screen, the tests and old data. Old Ready documents get an honest "not searchable yet" instead of a silent change.
+- 2026-09-21 (M6): Before building on Qdrant, a throwaway experiment with made-up vectors settled what the docs left open (id types, overwrite on upsert, delete by filter, exact mode, the small-collection full scan). The docs pages were partly missing, so behaviour was checked, not assumed.
+- 2026-09-21 (M6): Licences were read from the sources. Two candidates were excluded because their licence was missing or contradictory. "Public" does not mean "free to reuse".
+- 2026-09-21 (M6): A document level check ("was the right guide in the top 3?") looked perfect on six questions and hid the real question: is the answer-bearing chunk first? Chunk 1 ranked first every time. Judge retrieval at the level of the answer, which is why questions are judged by quote.
+- 2026-09-21 (M6): Two stores cannot share a transaction. Keep one authoritative, write the other last, and provide a check that compares them.
+- 2026-09-21 (M6): Wrap errors from a second system so an HTTP status from it is not mistaken for a status from the first.
