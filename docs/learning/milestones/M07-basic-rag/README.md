@@ -1,0 +1,83 @@
+# Milestone 7: Basic RAG
+
+**Status:** planned, started 2026-09-22. Concepts and plan written. Waiting for your go on the design decisions below before any code.
+**Time budget:** about 10 hours (from `docs/PLAN.md`).
+
+## Goal
+
+Turn retrieved chunks into a written answer. No citations yet (Milestone 8), no conversation history yet (Milestone 9), no prompt-injection hardening yet (Milestone 12). This milestone is the plain path: question in, grounded answer out, with sources returned as data and basic honesty about what the documents do and do not say.
+
+```
+question --embed--> Qdrant (top K, this workspace) --> Postgres (chunk text)
+                                                              |
+                                          numbered context (capped by a token budget)
+                                                              |
+                               system instruction (grounding rule) + user turn (context + question)
+                                                              |
+                                                    Gemini generate()
+                                                              |
+                              answer text, checked for the fixed refusal phrase -> noAnswer
+                                                              |
+                          { answer, sources: [...chunks used...], usage: {tokens, retrievalMs, generationMs} }
+```
+
+## Read first
+
+1. [`concepts.md`](concepts.md): six concepts taught before any code (context construction, system vs. user instructions, temperature, streaming, cost and latency tracking, "I don't know" handling).
+2. `apps/api/src/llm/types.ts` and `apps/api/src/llm/gemini/gemini-llm-client.ts`: the generation client already built in Milestone 1. This milestone is the first to call it for real.
+
+## Plan
+
+Three checkpoints. I stop at each one, show you the result, and wait.
+
+**Checkpoint A: design (this document, no code)**
+- [ ] A1. You confirm or change the decisions below.
+
+**Checkpoint B: the answer endpoint, no streaming**
+- [ ] B1. `buildContext`: numbers retrieved chunks, labels each with its document name, caps the total by a token budget (drops the lowest-scoring chunks beyond the cap). Pure function, tested with a property test like the chunkers.
+- [ ] B2. Fixed system instruction (grounding rule, the exact refusal phrase, what to do about instructions found inside a chunk) and the user prompt template.
+- [ ] B3. `RagService.answer()`: retrieve through the existing Qdrant search, skip the LLM call and return the refusal directly if nothing is retrieved, otherwise call `generate()` at temperature 0.2, check the reply for the refusal phrase, return the answer, the sources used, and usage (tokens, retrieval time, generation time).
+- [ ] B4. `POST /ask`, workspace-scoped the same way every tenant route is (`@CurrentWorkspace()`, no new parameter for it). No new database table.
+- [ ] B5. A `FakeLlmClient` for tests (same shape as `FakeEmbeddingClient`), and tests: workspace isolation, zero chunks skips the LLM call, the refusal phrase sets `noAnswer`, the context budget actually caps, temperature and model are passed through, usage numbers are present and add up.
+- [ ] B6. Live check with real Gemini against the Acme demo documents: one answerable question, one that should refuse. Real tokens and latency recorded, not estimated.
+
+**Checkpoint C: streaming and a minimal web page**
+- [ ] C1. A streaming version of the same call (`generateContentStream`), sent to the browser over SSE.
+- [ ] C2. A small Ask page in `apps/web` (read `docs/FRONTEND_RULES.md` first): a question box, the answer appearing as it streams, a plain list of sources underneath.
+- [ ] C3. Live browser check, topic note `04-rag.md`, quiz questions, `PROGRESS.md` and `DEMO_GUIDE.md` updated.
+
+## Decisions (change any of these at Checkpoint A)
+
+| Decision | Choice | Why | Cost |
+|---|---|---|---|
+| Temperature | 0.2 | A grounded factual answer should track the source closely, not vary creatively | Answers are a little more repetitive across near-duplicate questions, which is fine here |
+| How many chunks | 5 (same `K` as the evaluation harness) | Keeps the number comparable to what Milestone 6 already measured for retrieval | A harder question that truly needs more than 5 passages gets a worse answer. Milestone 10's fuller evaluation can test this |
+| Context cap | A token budget as a constant in code, not a new `.env` setting | It is a safety valve (one long chunk should never silently crowd out the others), not something to tune per environment | If it ever needs tuning per deployment, promoting it to an env var is a small change |
+| "I don't know" | A fixed refusal phrase in the system instruction, checked in the reply, exposed as `noAnswer: boolean` | Milestone 6 showed a score cutoff cannot tell answerable from unanswerable reliably. Grounding by instruction, not by score, is the only thing that measured well enough to try | Freeform text matching a phrase is weaker than a structured, verified answer. Milestone 8 replaces this properly |
+| Streaming | Built in Checkpoint C, on top of a non-streaming path built and tested first | Keeps the pipeline "document -> chunks -> ... -> answer" visible and testable in one plain call before adding the more complex streaming layer | Two code paths to keep working, though they share the same service underneath |
+| Cost tracking | Token counts and latency returned with every answer. No dollar figure, no persistence | Free-tier pricing is not meaningful to show, and persisted usage tracking is explicitly Milestone 13's job | The response has "how much" (tokens, time) but not "how expensive" until Milestone 13 |
+| Persistence | The Q&A is not saved anywhere in this milestone | Milestone 9 (conversational RAG) is what adds conversation storage. Building it twice would be wasted work | No history yet: every question is answered alone, with nothing remembered |
+| New module | `apps/api/src/rag/` (service, prompt builder, controller) | Matches the existing shape of one small module per responsibility | One more folder in `src/` |
+
+One free-tier fact worth knowing before the live checks: `GEMINI_GENERATION_RPM` is pinned at 12 in your `.env`. That is 12 answer calls per minute. The existing rate limiter and retry (Milestone 1) already handle it, but it means clicking through many test questions quickly during Checkpoint C will pause between some of them.
+
+## What you should be able to explain at the end
+
+1. Why the grounding rule belongs in the system instruction and not the user prompt.
+2. Why Milestone 6's finding (score ranges overlap) ruled out a score-based "I don't know," and what replaced it.
+3. What streaming buys you, and what it costs in code.
+4. Why token counts and latency are tracked now, but dollar cost is not yet.
+5. What is deliberately left out of this milestone, and which later milestone picks it up.
+
+## Files this milestone is expected to touch
+
+`apps/api/src/rag/` (new), `apps/api/src/llm/gemini/gemini-llm-client.ts` (a streaming method), `apps/api/test/` (new tests, a `FakeLlmClient`), `apps/web/src/` (a small Ask page, following `docs/FRONTEND_RULES.md`), `docs/learning/milestones/M07-basic-rag/`, `docs/learning/QUIZ.md`, `docs/PROGRESS.md`, `docs/DEMO_GUIDE.md`.
+
+## Your part
+
+- Confirm or change the decisions above (Checkpoint A).
+- Try the Ask page yourself once it exists (Checkpoint C), with a question the documents answer and one they do not.
+
+## After the milestone
+
+Quiz and exercises go into `docs/learning/QUIZ.md` under "Milestone 7". The topic note is `04-rag.md` in this folder.

@@ -10,7 +10,8 @@ One folder per milestone. Open the folder to see what the milestone was for, wha
 | 4 | Processing worker | [M04-processing-worker](M04-processing-worker/README.md) | Built and browser-checked. Quiz open |
 | 5 | Chunking and embeddings | [M05-chunking-and-embeddings](M05-chunking-and-embeddings/README.md) | Built and checked. Quiz open |
 | 6 | Qdrant retrieval and the mini evaluation | [M06-qdrant-retrieval-and-eval](M06-qdrant-retrieval-and-eval/README.md) | Built and measured. Quiz open |
-| 7 to 14 | RAG, citations, conversations, evaluation, hybrid search, security, hardening, deployment | folders are created when each milestone is planned | Not started |
+| 7 | Basic RAG | [M07-basic-rag](M07-basic-rag/README.md) | Planned, concepts and plan written, waiting for Checkpoint A |
+| 8 to 14 | Citations, conversations, evaluation, hybrid search, security, hardening, deployment | folders are created when each milestone is planned | Not started |
 
 ## What every milestone folder contains
 

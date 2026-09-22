@@ -1,7 +1,7 @@
 # Progress
 
-**Current milestone:** 6 (Qdrant retrieval and the mini evaluation) is built and measured, 2026-09-21. Quizzes for Milestones 1 to 6 are unanswered in `docs/learning/QUIZ.md` and do not block anything.
-**Next action:** the user says go for Milestone 7 (basic RAG). Claude first teaches its concepts and writes its plan into `docs/learning/milestones/M07-...` for the user to read and change, before any code.
+**Current milestone:** 7 (basic RAG), started 2026-09-22. Concepts and plan written, waiting for your go on the design decisions in `docs/learning/milestones/M07-basic-rag/README.md`.
+**Next action:** the user reads `docs/learning/milestones/M07-basic-rag/README.md` (Checkpoint A: temperature, top-K, context cap, the refusal-phrase approach to "I do not know", streaming built after the plain path, no persistence yet) and confirms or changes the decisions, or says go.
 
 ## Milestones
 
@@ -11,7 +11,7 @@
 - [x] 4. Processing worker (quiz pending)
 - [x] 5. Chunking and embeddings (quiz pending)
 - [x] 6. Qdrant retrieval + mini eval (quiz pending)
-- [ ] 7. Basic RAG
+- [ ] 7. Basic RAG (concepts and plan written, waiting on Checkpoint A)
 - [ ] 8. Citations
 - [ ] 9. Conversational RAG
 - [ ] 10. Full evaluation
