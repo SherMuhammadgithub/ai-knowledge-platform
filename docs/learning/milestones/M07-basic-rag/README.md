@@ -1,6 +1,6 @@
 # Milestone 7: Basic RAG
 
-**Status:** planned, started 2026-09-22. Concepts and plan written. Waiting for your go on the design decisions below before any code.
+**Status:** Checkpoint B done (the answer endpoint, non-streaming). Waiting for your go on Checkpoint C (streaming and the web page).
 **Time budget:** about 10 hours (from `docs/PLAN.md`).
 
 ## Goal
@@ -31,15 +31,15 @@ question --embed--> Qdrant (top K, this workspace) --> Postgres (chunk text)
 Three checkpoints. I stop at each one, show you the result, and wait.
 
 **Checkpoint A: design (this document, no code)**
-- [ ] A1. You confirm or change the decisions below.
+- [x] A1. You confirmed all the decisions below as recommended.
 
 **Checkpoint B: the answer endpoint, no streaming**
-- [ ] B1. `buildContext`: numbers retrieved chunks, labels each with its document name, caps the total by a token budget (drops the lowest-scoring chunks beyond the cap). Pure function, tested with a property test like the chunkers.
-- [ ] B2. Fixed system instruction (grounding rule, the exact refusal phrase, what to do about instructions found inside a chunk) and the user prompt template.
-- [ ] B3. `RagService.answer()`: retrieve through the existing Qdrant search, skip the LLM call and return the refusal directly if nothing is retrieved, otherwise call `generate()` at temperature 0.2, check the reply for the refusal phrase, return the answer, the sources used, and usage (tokens, retrieval time, generation time).
-- [ ] B4. `POST /ask`, workspace-scoped the same way every tenant route is (`@CurrentWorkspace()`, no new parameter for it). No new database table.
-- [ ] B5. A `FakeLlmClient` for tests (same shape as `FakeEmbeddingClient`), and tests: workspace isolation, zero chunks skips the LLM call, the refusal phrase sets `noAnswer`, the context budget actually caps, temperature and model are passed through, usage numbers are present and add up.
-- [ ] B6. Live check with real Gemini against the Acme demo documents: one answerable question, one that should refuse. Real tokens and latency recorded, not estimated.
+- [x] B1. `buildContext`: numbers retrieved chunks, labels each with its document name, caps the total by a token budget (drops the lowest-scoring chunks beyond the cap). Pure function, tested with a property test like the chunkers.
+- [x] B2. Fixed system instruction (grounding rule, the exact refusal phrase, what to do about instructions found inside a chunk) and the user prompt template.
+- [x] B3. `RagService.answer()`: retrieve through the existing Qdrant search, skip the LLM call and return the refusal directly if nothing is retrieved, otherwise call `generate()` at temperature 0.2, check the reply for the refusal phrase, return the answer, the sources used, and usage (tokens, retrieval time, generation time).
+- [x] B4. `POST /ask`, workspace-scoped the same way every tenant route is (`@CurrentWorkspace()`, no new parameter for it). No new database table.
+- [x] B5. A `FakeLlmClient` for tests (same shape as `FakeEmbeddingClient`), and tests: workspace isolation, zero chunks skips the LLM call, the refusal phrase sets `noAnswer`, the context budget actually caps, temperature and model are passed through, usage numbers are present and add up.
+- [x] B6. Live check with real Gemini against the Acme demo documents ("Expense policy (sample).txt" etc.): an answerable question got a correct, grounded, concise answer with real sources; an unanswerable one got the exact refusal phrase. Real tokens and latency recorded below, not estimated.
 
 **Checkpoint C: streaming and a minimal web page**
 - [ ] C1. A streaming version of the same call (`generateContentStream`), sent to the browser over SSE.

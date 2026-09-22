@@ -11,6 +11,7 @@ import { ENV } from "../src/config/config.module";
 import { DocumentIndexerService } from "../src/embedding/document-indexer.service";
 import { EMBEDDINGS } from "../src/embedding/embedding.tokens";
 import type { Env } from "../src/config/env";
+import { LLM } from "../src/llm/llm.tokens";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { DocumentProcessorService } from "../src/processing/document-processor.service";
 import { ProcessingModule } from "../src/processing/processing.module";
@@ -18,6 +19,7 @@ import { DocumentQueueService } from "../src/queue/document-queue.service";
 import { setupApp } from "../src/setup-app";
 import { VectorIndexService } from "../src/vector/vector-index.service";
 import { FakeEmbeddingClient } from "./fake-embeddings";
+import { FakeLlmClient } from "./fake-llm";
 
 export const TEST_JWT_SECRET = "test-secret-test-secret-test-secret-1234";
 
@@ -29,6 +31,8 @@ export type TestContext = {
   indexer: DocumentIndexerService;
   /** Every test app uses this instead of the real provider, so tests never call one. */
   embeddings: FakeEmbeddingClient;
+  /** Same, for generation. */
+  llm: FakeLlmClient;
   /** The real Qdrant, with a collection of this test app's own (dropped when the app closes). */
   vectorIndex: VectorIndexService;
   queue: DocumentQueueService;
@@ -73,11 +77,14 @@ export async function createTestApp(): Promise<TestContext> {
     CHUNK_OVERLAP_TOKENS: 60,
   };
   const embeddings = new FakeEmbeddingClient();
+  const llm = new FakeLlmClient();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule, ProcessingModule] })
     .overrideProvider(ENV)
     .useValue(env)
     .overrideProvider(EMBEDDINGS)
     .useValue(embeddings)
+    .overrideProvider(LLM)
+    .useValue(llm)
     .compile();
   const app = moduleRef.createNestApplication();
   setupApp(app);
@@ -95,6 +102,7 @@ export async function createTestApp(): Promise<TestContext> {
     processor: app.get(DocumentProcessorService),
     indexer: app.get(DocumentIndexerService),
     embeddings,
+    llm,
     vectorIndex: app.get(VectorIndexService),
     queue: app.get(DocumentQueueService),
   };

@@ -2,7 +2,7 @@
 
 Project 1 of the GenAI portfolio program. Read the parent `../CLAUDE.md` first (role, teaching procedure, milestone protocol, hard rules). This file adds project-specific decisions.
 
-**Current state:** Milestones 1 to 6 are built and checked. Milestone 6 (Qdrant retrieval and the mini evaluation) is complete (evaluation harness built; the three chunking strategies compared on 22 questions chosen by the assistant: hit rate @1 `paragraph` 88.9%, `heading` 83.3%, `fixed` 66.7%; default stays `paragraph`). Milestone 7 (basic RAG) has its concepts and plan written and is waiting for the user's go on Checkpoint A: `docs/learning/milestones/M07-basic-rag/README.md`. `docs/PROGRESS.md` has the exact state and open items. Do not skip ahead. Full plan is in `docs/PLAN.md`. To click through what exists: `docs/DEMO_GUIDE.md`. Milestone folders: `docs/learning/milestones/`.
+**Current state:** Milestones 1 to 6 are built and checked. Milestone 6 (Qdrant retrieval and the mini evaluation) is complete (evaluation harness built; the three chunking strategies compared on 22 questions chosen by the assistant: hit rate @1 `paragraph` 88.9%, `heading` 83.3%, `fixed` 66.7%; default stays `paragraph`). Milestone 7 (basic RAG): Checkpoints A and B done (the `/ask` endpoint, grounded answers, no streaming yet, live-checked with real Gemini). Waiting for the user's go on Checkpoint C (streaming, a minimal web page): `docs/learning/milestones/M07-basic-rag/README.md`. `docs/PROGRESS.md` has the exact state and open items. Do not skip ahead. Full plan is in `docs/PLAN.md`. To click through what exists: `docs/DEMO_GUIDE.md`. Milestone folders: `docs/learning/milestones/`.
 
 ## What we are building
 

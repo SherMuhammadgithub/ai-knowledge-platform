@@ -1,7 +1,7 @@
 # Progress
 
-**Current milestone:** 7 (basic RAG), started 2026-09-22. Concepts and plan written, waiting for your go on the design decisions in `docs/learning/milestones/M07-basic-rag/README.md`.
-**Next action:** the user reads `docs/learning/milestones/M07-basic-rag/README.md` (Checkpoint A: temperature, top-K, context cap, the refusal-phrase approach to "I do not know", streaming built after the plain path, no persistence yet) and confirms or changes the decisions, or says go.
+**Current milestone:** 7 (basic RAG). Checkpoint A (design) and Checkpoint B (the answer endpoint, non-streaming) are done. Waiting for your go on Checkpoint C (streaming and the web page).
+**Next action:** the user says go for Checkpoint C of Milestone 7 (streaming, a minimal Ask page in `apps/web`), or reacts to the unexplained generation latency noted in `docs/learning/milestones/M07-basic-rag/checkpoint-b-results.md`.
 
 ## Milestones
 
@@ -11,7 +11,7 @@
 - [x] 4. Processing worker (quiz pending)
 - [x] 5. Chunking and embeddings (quiz pending)
 - [x] 6. Qdrant retrieval + mini eval (quiz pending)
-- [ ] 7. Basic RAG (concepts and plan written, waiting on Checkpoint A)
+- [ ] 7. Basic RAG (Checkpoints A and B done, waiting on Checkpoint C)
 - [ ] 8. Citations
 - [ ] 9. Conversational RAG
 - [ ] 10. Full evaluation
@@ -195,6 +195,13 @@ Checkpoint E (done): closing.
 - [x] Correction made while writing the notes: Qdrant's `full_scan_threshold` is in kilobytes of vector data (about 3,300 vectors of our size), not 10,000 points. Fixed in `docs/PLAN.md`, `CLAUDE.md`, the Checkpoint A results and the retrieval note. Checked against Qdrant's docs and the live collection (119 points, 0 indexed vectors)
 
 **Milestone 6 summary.** Qdrant holds the vectors (mandatory workspace, setup and strategy filters, Postgres authoritative, `qdrant:sync` to compare and repair). An evaluation harness scores hit rate @1/3/5 and MRR against expected quotes, stores every run (database and `eval/runs/`), and refuses to score a half-built index or a wrong quote. 22 questions chosen by the assistant, 7 GOV.UK guides, 36 chunks. Baseline and comparison: `paragraph` 88.9% at rank 1 (MRR 0.944), `heading` 83.3% (0.907), `fixed` 66.7% (0.815). Default stays `paragraph`. 312 API tests. Limits: hit rate @3 and @5 are at the ceiling, no human reworded the questions, chunk sizes were not tested, Qdrant's approximate index was never in use at this size.
+
+Checkpoint B (done): the answer endpoint.
+- [x] `RagService.answer()` (`apps/api/src/rag/`): retrieve through the existing Qdrant search (same code the evaluation harness and the search script use), skip the model call when nothing is retrieved, build numbered context capped by a token budget, generate at temperature 0.2 with a fixed system instruction, detect the model's own refusal by an exact phrase, return sources limited to what was actually shown to the model
+- [x] `POST /ask`, workspace-scoped like every other tenant route, Zod-validated
+- [x] 328 API tests pass (16 new: 9 unit, 7 end-to-end with a fake LLM). 10 deliberate breaks, all caught (two mutation-script bugs found and fixed along the way)
+- [x] Live check, real Gemini, Acme Corp's fictional demo documents: a correct grounded answer with real sources, a correct refusal for an unanswerable question
+- [ ] Not yet explained: both live generation calls took 1 to 2 minutes (one had 3 retries, one succeeded first try and was still slow). Noted, not investigated (a Milestone 13 question)
 
 ## Environment (checked 2026-09-19)
 

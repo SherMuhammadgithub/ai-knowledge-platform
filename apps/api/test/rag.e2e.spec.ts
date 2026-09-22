@@ -1,0 +1,146 @@
+import { createHash, randomUUID } from "node:crypto";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { ENV } from "../src/config/config.module";
+import type { Env } from "../src/config/env";
+import { TenantPrismaService } from "../src/prisma/tenant-prisma.service";
+import { MAX_OUTPUT_TOKENS, NOT_FOUND_ANSWER, REFUSAL_PHRASE, SYSTEM_PROMPT, TEMPERATURE } from "../src/rag/prompt";
+import { RagService } from "../src/rag/rag.service";
+import { STORAGE, type StorageService } from "../src/storage/storage.service";
+import { agent, createTestApp, fixtures, registerUser, resetDb, resetStorage, type TestContext } from "./helpers";
+
+let ctx: TestContext;
+
+beforeAll(async () => {
+  ctx = await createTestApp();
+});
+afterAll(async () => {
+  await ctx.app.close();
+});
+beforeEach(async () => {
+  await resetDb(ctx.prisma);
+  resetStorage(ctx.storageDir);
+  await ctx.queue.clear();
+  ctx.embeddings.reset();
+  ctx.llm.reset();
+});
+
+const storage = () => ctx.app.get<StorageService>(STORAGE);
+
+/** Reads, embeds and indexes a document the way the workers do, so it is Ready and searchable. */
+async function readyDocument(workspaceId: string, text: string, name = "handbook.txt") {
+  const bytes = fixtures.txt(text);
+  const id = randomUUID();
+  const storageKey = `${workspaceId}/${id}`;
+  await storage().put(storageKey, bytes);
+  await ctx.prisma.document.create({
+    data: { id, workspaceId, originalName: name, type: "TXT", sizeBytes: bytes.length, contentHash: createHash("sha256").update(bytes).digest("hex"), storageKey },
+  });
+  expect(await ctx.processor.process({ documentId: id, workspaceId })).toBe("indexing");
+  expect(await ctx.indexer.index({ documentId: id, workspaceId })).toBe("ready");
+  return id;
+}
+
+const ask = (a: ReturnType<typeof agent>, question: string) => a.post("/ask").send({ question });
+
+describe("asking a question", () => {
+  it("answers from this workspace's documents, passing the fixed prompt shape and settings to the model", async () => {
+    const { agent: a, me } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    const wid = me.activeWorkspaceId!;
+    await readyDocument(wid, "Full-time employees get 25 days of paid annual leave.");
+
+    ctx.llm.replies = ["Full-time staff get 25 days."];
+    const res = await ask(a, "How many days of annual leave do full-time employees get?");
+
+    expect(res.status).toBe(201); // POST with no @HttpCode override, Nest's default for POST
+    expect(res.body).toMatchObject({ answer: "Full-time staff get 25 days.", noAnswer: false });
+    expect(res.body.sources).toHaveLength(1);
+    expect(res.body.sources[0]).toMatchObject({ documentName: "handbook.txt", pageNumber: 1, chunkIndex: 0 });
+    expect(res.body.usage).toMatchObject({ model: ctx.llm.model });
+    expect(res.body.usage.retrievalMs).toBeGreaterThanOrEqual(0);
+    expect(res.body.usage.generationMs).toBeGreaterThanOrEqual(0);
+    expect(res.body.usage.inputTokens).toBeGreaterThan(0);
+    expect(res.body.usage.outputTokens).toBeGreaterThan(0);
+
+    expect(ctx.llm.calls).toHaveLength(1);
+    const call = ctx.llm.calls[0];
+    expect(call.system).toBe(SYSTEM_PROMPT);
+    expect(call.temperature).toBe(TEMPERATURE);
+    expect(call.maxOutputTokens).toBe(MAX_OUTPUT_TOKENS);
+    expect(call.thinking).toBe("minimal");
+    expect(call.prompt).toContain("Full-time employees get 25 days of paid annual leave.");
+    expect(call.prompt).toContain("How many days of annual leave do full-time employees get?");
+    expect(call.prompt).toContain("handbook.txt");
+  });
+
+  it("never returns another workspace's chunks as sources, and never sends their text to the model", async () => {
+    const alice = await registerUser(ctx.app, "alice@a.com", "Alice");
+    const aliceDoc = await readyDocument(alice.me.activeWorkspaceId!, "Full-time employees get 25 days of paid annual leave.", "alice.txt");
+    const bob = await registerUser(ctx.app, "bob@b.com", "Bob");
+    await readyDocument(bob.me.activeWorkspaceId!, "Remote workers must use a company VPN at all times.", "bob.txt");
+
+    const res = await ask(bob.agent, "What is the policy?");
+    expect(res.status).toBe(201);
+    for (const source of res.body.sources) expect(source.documentName).not.toBe("alice.txt");
+    expect(ctx.llm.calls.at(-1)!.prompt).not.toContain("annual leave");
+    expect(ctx.llm.calls.at(-1)!.prompt).not.toContain("alice.txt");
+
+    // and the chunk really does belong to Bob's own document, not just "not Alice's by name"
+    const aliceChunkIds = new Set((await ctx.prisma.documentChunk.findMany({ where: { documentId: aliceDoc }, select: { id: true } })).map((c) => c.id));
+    for (const source of res.body.sources) expect(aliceChunkIds.has(source.chunkId)).toBe(false);
+  });
+
+  it("skips the model call entirely when there is nothing to retrieve", async () => {
+    const { agent: a } = await registerUser(ctx.app, "alice@a.com", "Alice"); // no documents uploaded
+    const res = await ask(a, "How many vacation days do I get?");
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ answer: NOT_FOUND_ANSWER, noAnswer: true, sources: [] });
+    expect(res.body.usage).toMatchObject({ generationMs: 0, inputTokens: null, outputTokens: null, thoughtTokens: null });
+    expect(ctx.llm.calls).toHaveLength(0); // no provider call paid for an answer we already knew
+  });
+
+  it("detects the model's own refusal and reports noAnswer, while still retrieving and returning nothing misleading", async () => {
+    const { agent: a, me } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    await readyDocument(me.activeWorkspaceId!, "Full-time employees get 25 days of paid annual leave.");
+    ctx.llm.replies = [REFUSAL_PHRASE];
+
+    const res = await ask(a, "What is the parking policy?");
+    expect(res.status).toBe(201);
+    expect(res.body.noAnswer).toBe(true);
+    expect(res.body.answer).toBe(REFUSAL_PHRASE);
+    expect(ctx.llm.calls).toHaveLength(1); // it was retrieved and asked about, unlike the empty-workspace case
+  });
+
+  it("rejects a missing, empty or far too long question before any retrieval or model call", async () => {
+    const { agent: a } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    for (const body of [{}, { question: "" }, { question: "hi" }, { question: "x".repeat(1001) }]) {
+      const res = await a.post("/ask").send(body);
+      expect(res.status).toBe(400);
+    }
+    expect(ctx.llm.calls).toHaveLength(0);
+  });
+
+  it("requires a session, like every other tenant route", async () => {
+    const res = await ask(agent(ctx.app), "How many vacation days do I get?");
+    expect(res.status).toBe(401);
+  });
+
+  it("never reports a source, or sends its text to the model, once the context budget has dropped it", async () => {
+    // A real budget (4000 tokens) is deliberately hard to exceed with 5 real chunks (see prompt.ts), so this
+    // constructs a RagService directly with a tiny one, to prove the dropped hit is dropped everywhere: not
+    // just from the prompt (already unit-tested in rag-prompt.spec.ts), but from the sources the API returns.
+    const { agent: a, me } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    const wid = me.activeWorkspaceId!;
+    await readyDocument(wid, "The office espresso machine needs descaling every 3 months.", "kitchen.txt");
+    await readyDocument(wid, "Full-time employees get 25 days of paid annual leave.", "handbook.txt");
+
+    const tinyBudget = new RagService(ctx.app.get(TenantPrismaService), ctx.vectorIndex, ctx.embeddings, ctx.llm, ctx.app.get(ENV) as Env, 15);
+    const actor = { userId: me.user.id, workspaceId: wid, role: "OWNER" as const };
+    const result = await tinyBudget.answer(actor, "How many days of annual leave do employees get, and how often is the espresso machine descaled?");
+
+    expect(result.sources).toHaveLength(1); // one passage fits in 15 tokens, not both
+    const kept = result.sources[0].documentName;
+    const dropped = kept === "handbook.txt" ? "kitchen.txt" : "handbook.txt";
+    expect(ctx.llm.calls.at(-1)!.prompt).not.toContain(dropped);
+  });
+});
