@@ -126,7 +126,7 @@ Microservices, Kubernetes, fine-tuning, self-hosted LLMs, agents (Project 2), OC
 ## 7. Open items
 
 - [ ] Verify current Gemini generation model, embedding model, dimension and free limits (M1)
-- [ ] Choose the demo corpus and record licenses (before M6)
+- [x] Choose the demo corpus and record licenses (before M6): GOV.UK employment guidance, `eval/corpus/LICENSES.md`
 - [ ] Decide reranking approach (M11)
 - [ ] Check Qdrant's current hybrid/multitenancy guidance (M6 and M11)
 
@@ -150,5 +150,5 @@ Source: Qdrant docs (multi-tenancy guide, collections, search), plus a throwaway
 - Point ids must be a UUID or an unsigned integer (a plain string gives 400). Upserting an existing id overwrites its vector and payload. Wrong vector size gives 400.
 - Cosine scores range from -1 to 1 and ignore vector length. `score_threshold` works. `params: { exact: true }` runs an exact search.
 - Delete works by ids and by filter.
-- Defaults: HNSW `m` 16, `ef_construct` 100, `full_scan_threshold` 10000. Below that size Qdrant scans everything, so a small collection is searched exactly.
+- Defaults: HNSW `m` 16, `ef_construct` 100, `full_scan_threshold` 10000. Its unit is kilobytes of vector data, not points (Qdrant docs: "1Kb = 1 vector of size 256"), so it is about 3,300 vectors of our 768 numbers. Below that size Qdrant scans everything, so a small collection is searched exactly. (Corrected 2026-09-21: this line and CLAUDE.md first said 10,000 points.)
 - Corpus candidates and their licences: `eval/corpus/LICENSES.md`.

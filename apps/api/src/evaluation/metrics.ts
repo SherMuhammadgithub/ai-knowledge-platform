@@ -9,6 +9,8 @@ export type RetrievedChunk = {
   documentName: string;
   chunkIndex: number;
   hit: boolean;
+  /** Estimated tokens in this chunk (characters / 4). */
+  tokens: number;
   preview: string; // the first characters of the chunk, so a stored run can be read without the database
 };
 
@@ -43,6 +45,11 @@ export type RunMetrics = {
   /** How strongly the closest chunk matched: for questions the documents can answer, and for those they cannot. */
   topScoreWhenAnswerable: Range;
   topScoreWhenUnanswerable: Range;
+  /**
+   * Average estimated tokens in the chunks retrieved for one question, over every question run. Strategies with
+   * bigger chunks put more text into the same top 5, which helps a hit and costs more in the answer prompt.
+   */
+  avgRetrievedTokens: number;
 };
 
 export function firstHitRank(hits: { hit: boolean }[]): number | null {
@@ -71,5 +78,6 @@ export function summarize(results: QuestionResult[]): RunMetrics {
     unreachable: answerable.filter((r) => !r.reachable).length,
     topScoreWhenAnswerable: rangeOf(answerable.flatMap((r) => (r.topScore === null ? [] : [r.topScore]))),
     topScoreWhenUnanswerable: rangeOf(unanswerable.flatMap((r) => (r.topScore === null ? [] : [r.topScore]))),
+    avgRetrievedTokens: results.length ? results.reduce((sum, r) => sum + r.retrieved.reduce((t, c) => t + c.tokens, 0), 0) / results.length : 0,
   };
 }

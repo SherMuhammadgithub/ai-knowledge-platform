@@ -81,3 +81,15 @@ Things that went wrong or surprised us, kept short. Newest at the bottom. Each o
 - **Two stores cannot share a transaction.** Keep one authoritative, write the other last, and give people a check that compares them.
 - **Wrap errors from another system.** An HTTP status from Qdrant would have been mistaken for a status from the embedding provider.
 - **Fake data can tie.** Equal scores made two exact searches order results differently. Compare scores, and ids where the score is not tied.
+- **A score of 100% can mean the test is too easy.** Hit rate @3 and @5 were 100% for all three chunking strategies because the corpus had 36 chunks. Only the stricter numbers carried information.
+- **Decide which questions to keep before you see results.** Choosing test questions by how the system handles them raises the score and means nothing.
+- **Refuse to produce numbers that would mean nothing.** The run stops on a wrong quote or a half-built index instead of warning. A warning gets copied away from the number.
+- **Repeat a run before believing a difference.** The same strategy run twice gave identical ranks and scores, so the differences between strategies were not noise.
+- **One neat explanation is a hypothesis.** The q04 miss looked like a list cut across a boundary. It also missed under the strategy that never cuts a section, so the story was incomplete. Check an explanation against the other runs.
+- **Count before saying "more than chance".** The guide's first chunk won 6 of 11 wrong first places. That is suggestive, and 11 cases is too few to be sure.
+- **A comparison of one question is not a result.** With 18 answerable questions, 16 against 15 is noise. A difference of four questions in one direction on every measure is believable.
+- **Sparse fake vectors are bad at ranking.** Test data that lost to hash collisions by 0.001 failed a correct system three times. Test the plumbing with data that has a wide margin, and say why it was chosen.
+- **A rule can be dead.** A deliberate break showed that rejecting bullets did nothing because another rule already rejected them. Delete it instead of keeping code that suggests a check that does not exist.
+- **Do not re-cut chunks that stored runs point at.** Chunk ids change, and old results would then point at nothing. The preparation script only cuts what is missing.
+- **Escape codes in written files can become real invisible characters.** A backslash-u code typed into a file write arrived as a byte-order mark or zero-width space. Compare character codes in code, and scan files for invisible characters.
+- **Check a unit before repeating a number.** Qdrant's full scan threshold is in kilobytes, not points. It was written as 10,000 points in three places until the docs were read again.

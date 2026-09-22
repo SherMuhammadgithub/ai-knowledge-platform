@@ -192,13 +192,23 @@ Needs the worker restarted with the Milestone 6 code. Run `bun run --cwd apps/ap
 5. Delete the equipment policy and run the check again: still "in step", so its points were removed with it.
 6. The evaluation corpus is in its own workspace: sign in as `eval@akp.test` (password `eval-password-123`) to see the seven GOV.UK guides. It is separate from the demo accounts and is not removed by `bun run seed`.
 
+### T. Evaluation and chunking strategies
+No API or worker needed, only Docker (Postgres and Qdrant). Only the commands marked "Gemini" send text to Gemini, and it is public GOV.UK text.
+1. `bun run --cwd apps/api eval:check`: "22 expected quotes checked ... 22 found in a chunk, 0 with a problem". It reads the question file and the guides, and makes no Gemini call.
+2. `bun run --cwd apps/api chunks:lab ../../eval/corpus/govuk/govuk-flexible-working.txt --show heading`: 24 lines detected as headings, then a table of how the three strategies cut the file, then the heading chunks with their labels. Try another guide.
+3. Compare the three stored runs (no database, no Gemini): `bun run --cwd apps/api eval:compare 2026-09-21T11-45-39-paragraph-d3.json 2026-09-21T11-45-57-fixed-d3.json 2026-09-21T11-46-02-heading-d3.json`. You see hit rate @1 of 88.9%, 66.7% and 83.3%, and "6 of 18 answerable questions changed rank between runs: q09, q11, q13, q17, q20, q22".
+4. The stored runs are also in the database: `docker exec -i ai-knowledge-platform-postgres-1 psql -U akp -d akp -c "SELECT label, strategy, hit_rate_1, hit_rate_5, mrr FROM eval_runs ORDER BY created_at"` shows four rows (the baseline and the three of the comparison).
+5. Run the evaluation again (Gemini, 22 short questions, one call): `bun run --cwd apps/api eval:run --no-store`. It prints one line per question and the scores, and stores nothing. With the default `paragraph` strategy you get 88.9% at rank 1 and MRR 0.944 again: the run is repeatable. Without `--no-store` it would add a row and a file.
+6. See the refusal: `bun run --cwd apps/api eval:run --workspace Globex --strategy heading --no-store`. The Globex demo workspace has no heading chunks, so it stops with "No searchable \"heading\" chunks in this workspace ..." before calling Gemini, instead of printing meaningless numbers. The same happens if Qdrant and Postgres disagree, or if an expected quote is not in its guide.
+7. The Qdrant dashboard (`http://localhost:6333/dashboard`, collection `akp_chunks`) now holds points for all three strategies of the GOV.UK workspace, each with its `strategy` in the payload.
+
 ## 4. Automated tests
 
 ```
 bun run test
 ```
 
-221 tests run against a separate `akp_test` database (and a separate queue), never the dev ones. They cover sign up and sign in, forged and tampered cookies, roles, cross-workspace access, the immediate removal in check G, the workspace-scoped database client, file type detection, storage safety, duplicate and oversized uploads, and who may delete what. Also text extraction from real generated PDF and Word files, every cleaning rule, the zip-bomb guard, the queue with a real worker, retries, the sweeper, and a job that names the wrong workspace. Also the chunkers (including a test on 300 random pages), chunks saved and replaced together with the pages, and chunks kept separate per workspace. Also the token limiter, vector storage, the embedding step with a fake provider (progress, the cache, retries, errors that can never work, model change, deleting vectors with documents), search isolation, and both workers end to end. No test calls a real embedding provider. The search index tests use the real Qdrant, each with a collection of its own that is deleted afterwards.
+312 tests run against a separate `akp_test` database (and a separate queue), never the dev ones. They cover sign up and sign in, forged and tampered cookies, roles, cross-workspace access, the immediate removal in check G, the workspace-scoped database client, file type detection, storage safety, duplicate and oversized uploads, and who may delete what. Also text extraction from real generated PDF and Word files, every cleaning rule, the zip-bomb guard, the queue with a real worker, retries, the sweeper, and a job that names the wrong workspace. Also the chunkers (including a test on 300 random pages), chunks saved and replaced together with the pages, and chunks kept separate per workspace. Also the token limiter, vector storage, the embedding step with a fake provider (progress, the cache, retries, errors that can never work, model change, deleting vectors with documents), search isolation, and both workers end to end. No test calls a real embedding provider. The search index tests use the real Qdrant, each with a collection of its own that is deleted afterwards. Also, from Milestone 6: Qdrant with a collection per test app (isolation, filters, points written and removed, consistency), the evaluation harness (quote matching, hit rate and MRR, refusing meaningless runs, stored runs, comparing runs), heading detection checked against the real GOV.UK guides, and the three chunking strategies living side by side.
 
 ## 5. Reset the demo data
 
@@ -212,7 +222,7 @@ If you want a completely empty database instead, `docker compose down -v` and st
 
 ## 6. What comes next
 
-Milestone 6 stores the vectors in Qdrant, adds filtering and a small evaluation (about 20 questions), and measures which chunking works best (naive, paragraph, heading-aware) with hit rate and reciprocal rank. Milestone 7 adds the answer: the retrieved chunks are given to the generation model.
+Milestone 6 is done: vectors are in Qdrant with a mandatory workspace filter, and a small evaluation (22 questions) measured the three chunking strategies. The default stays paragraph. Milestone 7 adds the answer: the retrieved chunks are given to the generation model.
 
 ## 7. Stopping things properly
 

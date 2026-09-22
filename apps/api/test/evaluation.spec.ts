@@ -90,6 +90,7 @@ describe("the question file", () => {
 const result = (id: string, rank: number | null, over: Partial<QuestionResult> = {}): QuestionResult => ({
   id, question: id, kind: "plain", answerable: true, rank, topScore: 0.7, reachable: true, retrieved: [], ...over,
 });
+const chunk = (tokens: number) => ({ rank: 1, score: 0.7, chunkId: "c", documentName: "d.txt", chunkIndex: 0, hit: false, tokens, preview: "" });
 
 describe("scores", () => {
   it("finds the rank of the first correct chunk", () => {
@@ -133,6 +134,16 @@ describe("scores", () => {
     expect(m.hitRate).toEqual({ 1: 0, 3: 0, 5: 0 });
     expect(m.mrr).toBe(0);
     expect(summarize([]).topScoreWhenAnswerable).toBeNull();
+  });
+
+  it("averages the tokens retrieved per question, over every question run", () => {
+    const m = summarize([
+      result("a", 1, { retrieved: [chunk(400), chunk(500)] }), // 900
+      result("b", null, { retrieved: [chunk(300)] }), // 300
+      result("u", null, { answerable: false, retrieved: [chunk(600), chunk(600), chunk(600)] }), // 1800: unanswerable questions count too
+    ]);
+    expect(m.avgRetrievedTokens).toBeCloseTo(1000);
+    expect(summarize([]).avgRetrievedTokens).toBe(0);
   });
 
   it("finds the median of odd and even lists", () => {

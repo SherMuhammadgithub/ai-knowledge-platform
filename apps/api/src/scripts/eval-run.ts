@@ -7,7 +7,8 @@
 //                                          embeds the questions (public text only: the GOV.UK questions).
 //
 // Options (put them after the script name, no spaces inside a value):
-//   --strategy paragraph|fixed    which chunks to search (default: CHUNK_STRATEGY from .env)
+//   --strategy paragraph|fixed|heading   which chunks to search (default: CHUNK_STRATEGY from .env).
+//                                        Prepare a strategy first with: bun run --cwd apps/api eval:prepare --strategy <name>
 //   --label baseline              a short name kept with the stored run
 //   --questions <path>            question file (default: eval/questions/govuk.json)
 //   --workspace <name>            default: the workspace of eval@akp.test, where load-corpus put the GOV.UK guides
@@ -71,6 +72,7 @@ function printReport(report: EvalReport) {
   console.log(`  hit rate @3  ${pct(m.hitRate[3])}`);
   console.log(`  hit rate @5  ${pct(m.hitRate[5])}`);
   console.log(`  MRR          ${m.mrr.toFixed(3)}`);
+  console.log(`  tokens retrieved per question (top ${report.k}, estimated)  ${Math.round(m.avgRetrievedTokens)}`);
   if (m.unreachable) console.log(`  ${m.unreachable} answerable question(s) cannot be answered by any single chunk: chunking cut through the expected quote. They count as misses.`);
   console.log(`  top score when the documents can answer:     ${range(m.topScoreWhenAnswerable)}`);
   console.log(`  top score when the documents cannot answer:  ${range(m.topScoreWhenUnanswerable)}`);
@@ -106,7 +108,7 @@ async function main() {
 
     if (args.check) {
       const chunkCount = await db.documentChunk.count({ where: { strategy, document: { status: "READY" } } });
-      if (chunkCount === 0) throw new Error(`This workspace has no "${strategy}" chunks yet, so quotes cannot be checked against them. Try: bun run --cwd apps/api chunks:rebuild`);
+      if (chunkCount === 0) throw new Error(`This workspace has no "${strategy}" chunks yet, so quotes cannot be checked against them. Try: bun run --cwd apps/api eval:prepare --strategy ${strategy}`);
       const checks = await checkQuotes(db, strategy, file.questions.filter((q) => q.status !== "drop"));
       const problems = checks.filter((c) => c.state !== "ok");
       for (const c of problems) {

@@ -3,8 +3,8 @@ import type { Env } from "../config/env";
 // Milestone 4 stores clean text per page. Chunking cuts each page into pieces that are small enough to embed
 // and to hand to a language model, and big enough to keep an idea together.
 
-export type ChunkStrategy = "paragraph" | "fixed";
-export const CHUNK_STRATEGIES: readonly ChunkStrategy[] = ["paragraph", "fixed"];
+export type ChunkStrategy = "paragraph" | "fixed" | "heading";
+export const CHUNK_STRATEGIES: readonly ChunkStrategy[] = ["paragraph", "fixed", "heading"];
 
 /** Sizes in characters. Token counts are estimates: characters / 4 (measured in Milestone 5, Checkpoint A). */
 export type ChunkSettings = { targetChars: number; overlapChars: number };
@@ -23,7 +23,13 @@ export function chunkSettingsFrom(env: Pick<Env, "CHUNK_TARGET_TOKENS" | "CHUNK_
  * One chunk of one page. The invariant everything else relies on (highlighting, citations, tests):
  * page.text.slice(startChar, endChar) === text
  */
-export type ChunkPiece = { startChar: number; endChar: number; text: string };
+export type ChunkPiece = {
+  startChar: number;
+  endChar: number;
+  text: string;
+  /** The heading of the section this chunk starts in. Only the heading-aware chunker sets it. */
+  heading?: string | null;
+};
 
 /** Shrinks a range so it starts and ends on non-whitespace. Returns null if nothing is left. */
 export function trimRange(text: string, start: number, end: number): { start: number; end: number } | null {

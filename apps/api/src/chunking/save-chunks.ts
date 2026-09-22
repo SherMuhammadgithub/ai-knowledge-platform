@@ -29,6 +29,7 @@ export async function replaceChunks(
       text: d.text,
       tokenEstimate: d.tokenEstimate,
       contentHash: d.contentHash,
+      heading: d.heading,
     })),
   });
 }

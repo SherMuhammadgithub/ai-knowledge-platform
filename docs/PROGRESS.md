@@ -1,7 +1,7 @@
 # Progress
 
-**Current milestone:** 6 (Qdrant retrieval and the mini evaluation), started 2026-09-21. Checkpoints A and B are done. Quizzes for Milestones 1 to 6 are unanswered in `docs/learning/QUIZ.md` and do not block anything.
-**Next action:** the user answers two questions in `checkpoint-c-results.md`: (1) write 8 to 10 harder questions before Checkpoint D (optional, about 30 minutes, recommended), (2) go for Checkpoint D (heading detection, three-way chunking comparison).
+**Current milestone:** 6 (Qdrant retrieval and the mini evaluation) is built and measured, 2026-09-21. Quizzes for Milestones 1 to 6 are unanswered in `docs/learning/QUIZ.md` and do not block anything.
+**Next action:** the user says go for Milestone 7 (basic RAG). Claude first teaches its concepts and writes its plan into `docs/learning/milestones/M07-...` for the user to read and change, before any code.
 
 ## Milestones
 
@@ -10,7 +10,7 @@
 - [x] 3. Document upload and storage (quiz pending)
 - [x] 4. Processing worker (quiz pending)
 - [x] 5. Chunking and embeddings (quiz pending)
-- [ ] 6. Qdrant retrieval + mini eval
+- [x] 6. Qdrant retrieval + mini eval (quiz pending)
 - [ ] 7. Basic RAG
 - [ ] 8. Citations
 - [ ] 9. Conversational RAG
@@ -176,6 +176,25 @@ Checkpoint C (done):
 - [x] Live check with real Gemini and Qdrant on 3 throwaway questions (not in the set): one batch embedding call of 1.4 s, search, scores, a database row and a JSON file. The throwaway run was then deleted so it cannot be mistaken for a baseline
 - [x] Questions chosen: at the user's request Claude set keep (22: 18 answerable, 4 unanswerable) or drop (10), judging only realism, before any search results. Not human-reviewed or reworded: the set may flatter search, and results must say so
 - [x] Baseline run on `paragraph` chunks, stored (row `01a0c330-573c-746f-813d-363f36c69d2e`, `eval/runs/2026-09-21T08-58-40-paragraph-baseline.json`): hit rate @1 88.9% (16 of 18), @3 100%, @5 100%, MRR 0.944, 0 quotes cut by chunking. Top score 0.665 to 0.798 when answerable, 0.627 to 0.717 when not (ranges overlap). Results in `checkpoint-c-results.md`. Limits: 22 questions chosen by the assistant, 36 chunks, hit rate @5 is guaranteed for guides with 5 or fewer chunks
+
+Checkpoint D (done): the chunking experiment. Results in `checkpoint-d-results.md`.
+- [x] Heading detection (`chunking/headings.ts`): one short line, capital or digit first, not ending like a sentence, not a bullet, table row, link, e-mail or "Label: value". Read against all seven guides, no false headings found. Word heading styles not built
+- [x] Heading-aware chunker: packs whole sections up to the target size, cuts only at headings, splits an oversized section with the paragraph chunker, no overlap between sections, a page with no headings is cut like `paragraph`. New nullable column `heading` (migration `chunk_heading`), filled only by the `heading` strategy. `CHUNK_STRATEGY` accepts `heading`
+- [x] Scripts: `chunks:lab` (offline, shows headings and how each strategy cuts a file), `eval:prepare --strategy` (cut, embed, index for the eval workspace only, never re-cuts existing chunks), `eval:compare` (stored runs side by side, refuses runs from different question files or embedding setups). Tokens retrieved per question added to every run
+- [x] Corpus embedded under `fixed` and `heading`: 14 Gemini calls, public text only. 107 points in the GOV.UK workspace (36 + 35 + 36)
+- [x] Three stored runs on the same 22 questions (`paragraph` d3 row `01a0c3c9-3783-735c-9c91-89bfbaf1bb10`, `fixed` `01a0c3c9-7df3-746b-a1c3-9959f65bb7d0`, `heading` `01a0c3c9-9108-73a7-8e04-04f64452737b`). Hit rate @1: 88.9%, 66.7%, 83.3%. MRR: 0.944, 0.815, 0.907. Hit rate @3 and @5 are 100% for all (the corpus is too small to separate them). The `paragraph` re-run is identical to the baseline
+- [x] Decision: default stays `paragraph`. `fixed` is clearly worse (5 questions lower, 1 higher). `heading` is within noise of `paragraph` (one question lower at rank 1). Correction to Checkpoint C: q04 is second under all three strategies, so a boundary cut was not the whole story
+- [x] 312 API tests pass (54 new). 30 deliberate breaks: all accounted for (dead rule removed, two test gaps closed, one break changes nothing)
+- Not tested: chunk sizes, Word heading styles, PDFs with the heading strategy, a larger corpus. `qdrant:sync` fills and compares only the configured strategy
+
+Checkpoint E (done): closing.
+- [x] Topic notes `05-retrieval.md` and `07-evaluation.md` in the milestone folder (the second grows in Milestone 10)
+- [x] Milestone 6 quiz (7 questions) and exercises (3) in `docs/learning/QUIZ.md`
+- [x] `docs/DEMO_GUIDE.md` check T (evaluation and chunking strategies), test count 312
+- [x] Milestone README, milestone index, learning index, `10-lessons-learned.md`, `CLAUDE.md`
+- [x] Correction made while writing the notes: Qdrant's `full_scan_threshold` is in kilobytes of vector data (about 3,300 vectors of our size), not 10,000 points. Fixed in `docs/PLAN.md`, `CLAUDE.md`, the Checkpoint A results and the retrieval note. Checked against Qdrant's docs and the live collection (119 points, 0 indexed vectors)
+
+**Milestone 6 summary.** Qdrant holds the vectors (mandatory workspace, setup and strategy filters, Postgres authoritative, `qdrant:sync` to compare and repair). An evaluation harness scores hit rate @1/3/5 and MRR against expected quotes, stores every run (database and `eval/runs/`), and refuses to score a half-built index or a wrong quote. 22 questions chosen by the assistant, 7 GOV.UK guides, 36 chunks. Baseline and comparison: `paragraph` 88.9% at rank 1 (MRR 0.944), `heading` 83.3% (0.907), `fixed` 66.7% (0.815). Default stays `paragraph`. 312 API tests. Limits: hit rate @3 and @5 are at the ceiling, no human reworded the questions, chunk sizes were not tested, Qdrant's approximate index was never in use at this size.
 
 ## Environment (checked 2026-09-19)
 

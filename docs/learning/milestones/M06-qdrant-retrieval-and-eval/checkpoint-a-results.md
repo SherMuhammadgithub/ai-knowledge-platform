@@ -18,7 +18,7 @@ Read from Qdrant's docs, and then **checked by a real experiment** against your 
 | Wrong vector size | Refused with a clear error (400) |
 | Defaults | HNSW `m` 16, `ef_construct` 100, and `full_scan_threshold` 10000 |
 
-One thing this changes: below the full scan threshold, Qdrant scans everything instead of using the approximate index. Our corpus (hundreds of chunks) will be searched exactly. So a "Qdrant matches brute force" test proves our data, filters and ids are wired correctly, and does not prove anything about the approximate index. I will say so in the results and not present it as a quality test.
+One thing this changes: below the full scan threshold (10000 **kilobytes** of vectors, which is about 3,300 vectors of our size, not 10,000 points), Qdrant scans everything instead of using the approximate index. Our corpus (hundreds of chunks) will be searched exactly. So a "Qdrant matches brute force" test proves our data, filters and ids are wired correctly, and does not prove anything about the approximate index. I will say so in the results and not present it as a quality test.
 
 `payload_m` and `m: 0` (the setting for collections with very many tenants) are not needed at our size. Not used.
 

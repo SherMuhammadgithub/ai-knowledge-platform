@@ -1,0 +1,1436 @@
+{
+  "runId": "01a0c3c9-9108-73a7-8e04-04f64452737b",
+  "label": "d3",
+  "ranAt": "2026-09-21T11:46:02.110Z",
+  "strategy": "heading",
+  "retrieval": "qdrant",
+  "k": 5,
+  "embedding": {
+    "model": "gemini-embedding-2",
+    "dimensions": 768,
+    "setupId": "gemini-embedding-2|768|d290113f"
+  },
+  "questionSet": {
+    "name": "govuk-employment-v1",
+    "file": "govuk.json",
+    "sha256": "7c9b8f6d54d8982fa52a841014f4d74005ca5677a3e71dd7de01f6781cc15ab9",
+    "inFile": 32,
+    "ran": 22,
+    "skipped": {
+      "candidate": 0,
+      "drop": 10
+    }
+  },
+  "chunks": {
+    "configuredTargetTokens": 500,
+    "configuredOverlapTokens": 60,
+    "count": 35,
+    "avgTokens": 422,
+    "minTokens": 104,
+    "maxTokens": 553
+  },
+  "corpus": [
+    {
+      "document": "govuk-flexible-working.txt",
+      "contentHash": "95a05446191b3dc838178ee25722ea90844539fbe6431d29a962ff2afb639823",
+      "chunkCount": 4
+    },
+    {
+      "document": "govuk-holiday-entitlement-rights.txt",
+      "contentHash": "00dc8a60e6af70476b93d348ed127072183c3b02abb9d1418457ce437d2b8fb1",
+      "chunkCount": 8
+    },
+    {
+      "document": "govuk-maternity-pay-leave.txt",
+      "contentHash": "ea7d9487b930d8a95dc99218d55725764f87f88684e738b19b1aa89f172692c7",
+      "chunkCount": 4
+    },
+    {
+      "document": "govuk-maximum-weekly-working-hours.txt",
+      "contentHash": "ba55b2103e95e6ccf56ea04518bae0067e3a0c48264642094af9bf2beb37df41",
+      "chunkCount": 3
+    },
+    {
+      "document": "govuk-paternity-pay-leave.txt",
+      "contentHash": "adcb59f30e4ed93e985be98f299c9ab9f73f3a3579042b5985b350e08a723758",
+      "chunkCount": 6
+    },
+    {
+      "document": "govuk-redundancy-your-rights.txt",
+      "contentHash": "cfc09bc9189412c8254498b0111293fd7202ffda3ae923662a2c60c91e050580",
+      "chunkCount": 7
+    },
+    {
+      "document": "govuk-statutory-sick-pay.txt",
+      "contentHash": "84936b16d28bf58af88b0e675cbd4a401ceb6c8de656370834422500dcae19f5",
+      "chunkCount": 3
+    }
+  ],
+  "quoteProblems": [],
+  "metrics": {
+    "answerable": 18,
+    "unanswerable": 4,
+    "hitRate": {
+      "1": 0.8333333333333334,
+      "3": 1,
+      "5": 1
+    },
+    "mrr": 0.9074074074074076,
+    "unreachable": 0,
+    "topScoreWhenAnswerable": {
+      "min": 0.6710031,
+      "median": 0.76475006,
+      "max": 0.8127085
+    },
+    "topScoreWhenUnanswerable": {
+      "min": 0.626172,
+      "median": 0.65794995,
+      "max": 0.73237956
+    },
+    "avgRetrievedTokens": 2183.9545454545455
+  },
+  "results": [
+    {
+      "id": "q01",
+      "question": "What is the minimum paid time off I'm legally allowed each year?",
+      "kind": "plain",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.7449033,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.7449033,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-178449a9b33b",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 0,
+          "hit": true,
+          "tokens": 484,
+          "preview": "holiday entitlement entitlement almost all people classed as workers are legally entitled to 5.6 weeks' paid holiday a year (known as statutory leave entitlemen"
+        },
+        {
+          "rank": 2,
+          "score": 0.72395444,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-1b1dfd765fd0",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 377,
+          "preview": "bank holidays bank or public holidays do not have to be given as paid leave. an employer can choose to include bank holidays as part of a worker's statutory ann"
+        },
+        {
+          "rank": 3,
+          "score": 0.70344925,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-251922728c2b",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 4,
+          "hit": false,
+          "tokens": 467,
+          "preview": "if a worker was unable to take leave workers can carry over their whole leave entitlement if any of the following apply: - they did not receive 'rolled-up holid"
+        },
+        {
+          "rank": 4,
+          "score": 0.7004497,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-1e377a8bdb19",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 469,
+          "preview": "leave year an employer should tell their staff the dates of their statutory leave year as soon as they start working, for example, it might run from 1 january t"
+        },
+        {
+          "rank": 5,
+          "score": 0.6977004,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-2399a9250d96",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 462,
+          "preview": "example someone works a 5-day week and is entitled to 28 days' annual leave a year. after their third month in the job, they'd be entitled to 7 days' leave (a q"
+        }
+      ]
+    },
+    {
+      "id": "q02",
+      "question": "I work three days a week. How many days of holiday should I get?",
+      "kind": "number inside a long guide",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.7898413,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.7898413,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-178449a9b33b",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 0,
+          "hit": true,
+          "tokens": 484,
+          "preview": "holiday entitlement entitlement almost all people classed as workers are legally entitled to 5.6 weeks' paid holiday a year (known as statutory leave entitlemen"
+        },
+        {
+          "rank": 2,
+          "score": 0.7485926,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-2399a9250d96",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 462,
+          "preview": "example someone works a 5-day week and is entitled to 28 days' annual leave a year. after their third month in the job, they'd be entitled to 7 days' leave (a q"
+        },
+        {
+          "rank": 3,
+          "score": 0.74535906,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-251922728c2b",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 4,
+          "hit": false,
+          "tokens": 467,
+          "preview": "if a worker was unable to take leave workers can carry over their whole leave entitlement if any of the following apply: - they did not receive 'rolled-up holid"
+        },
+        {
+          "rank": 4,
+          "score": 0.737105,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-2eaa9298cd8a",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 6,
+          "hit": false,
+          "tokens": 477,
+          "preview": "more information there's guidance for calculating holiday pay for workers without fixed hours or pay, which includes several examples. you can also contact the "
+        },
+        {
+          "rank": 5,
+          "score": 0.72574455,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-1b1dfd765fd0",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 377,
+          "preview": "bank holidays bank or public holidays do not have to be given as paid leave. an employer can choose to include bank holidays as part of a worker's statutory ann"
+        }
+      ]
+    },
+    {
+      "id": "q04",
+      "question": "I was off sick most of last year and could not use my holiday. How much can I carry over?",
+      "kind": "number inside a long guide",
+      "answerable": true,
+      "rank": 2,
+      "topScore": 0.7572188,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.7572188,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-251922728c2b",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 4,
+          "hit": false,
+          "tokens": 467,
+          "preview": "if a worker was unable to take leave workers can carry over their whole leave entitlement if any of the following apply: - they did not receive 'rolled-up holid"
+        },
+        {
+          "rank": 2,
+          "score": 0.7437828,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-2399a9250d96",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 3,
+          "hit": true,
+          "tokens": 462,
+          "preview": "example someone works a 5-day week and is entitled to 28 days' annual leave a year. after their third month in the job, they'd be entitled to 7 days' leave (a q"
+        },
+        {
+          "rank": 3,
+          "score": 0.73755836,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-178449a9b33b",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 484,
+          "preview": "holiday entitlement entitlement almost all people classed as workers are legally entitled to 5.6 weeks' paid holiday a year (known as statutory leave entitlemen"
+        },
+        {
+          "rank": 4,
+          "score": 0.71891695,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-31a6dece1e2a",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 7,
+          "hit": false,
+          "tokens": 285,
+          "preview": "taking holiday before leaving a job during their notice period the worker may be able to take whatever is left of their statutory annual leave. use the holiday "
+        },
+        {
+          "rank": 5,
+          "score": 0.71887136,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-2eaa9298cd8a",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 6,
+          "hit": false,
+          "tokens": 477,
+          "preview": "more information there's guidance for calculating holiday pay for workers without fixed hours or pay, which includes several examples. you can also contact the "
+        }
+      ]
+    },
+    {
+      "id": "q06",
+      "question": "Does my holiday still build up while I'm on maternity leave?",
+      "kind": "several guides answer it",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.7758388,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.7758388,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-38be85cc7d31",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 0,
+          "hit": true,
+          "tokens": 447,
+          "preview": "maternity pay and leave overview when you take time off to have a baby you might be eligible for: - statutory maternity leave - statutory maternity pay - paid t"
+        },
+        {
+          "rank": 2,
+          "score": 0.74175954,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-470248953b9e",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 192,
+          "preview": "extra help maternity benefits use a benefits calculator to see what help you can get from: - universal credit - child benefit you could get a £500 sure start ma"
+        },
+        {
+          "rank": 3,
+          "score": 0.73767585,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-3c6b6a3110be",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 481,
+          "preview": "pay statutory maternity pay (smp) is paid for up to 39 weeks. you get: - 90% of your average weekly earnings (before tax) for the first 6 weeks - £194.32 or 90%"
+        },
+        {
+          "rank": 4,
+          "score": 0.72459006,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-1e377a8bdb19",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 2,
+          "hit": true,
+          "tokens": 469,
+          "preview": "leave year an employer should tell their staff the dates of their statutory leave year as soon as they start working, for example, it might run from 1 january t"
+        },
+        {
+          "rank": 5,
+          "score": 0.72268665,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-178449a9b33b",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 484,
+          "preview": "holiday entitlement entitlement almost all people classed as workers are legally entitled to 5.6 weeks' paid holiday a year (known as statutory leave entitlemen"
+        }
+      ]
+    },
+    {
+      "id": "q08",
+      "question": "When do I have to hand in a doctor's note?",
+      "kind": "plain",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.72381175,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.72381175,
+          "chunkId": "01a0c3c8-985a-754b-9e36-247e4d1e03b4",
+          "documentName": "govuk-statutory-sick-pay.txt",
+          "chunkIndex": 1,
+          "hit": true,
+          "tokens": 472,
+          "preview": "exceptions you will not qualify if you: - have received the maximum amount of ssp (28 weeks) - are getting statutory maternity pay linked periods of sickness if"
+        },
+        {
+          "rank": 2,
+          "score": 0.6722547,
+          "chunkId": "01a0c3c8-985a-754b-9e36-238b7227ccff",
+          "documentName": "govuk-statutory-sick-pay.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 471,
+          "preview": "statutory sick pay (ssp) overview you can get up to £123.25 per week statutory sick pay (ssp) if you're too ill to work. it's paid by your employer for up to 28"
+        },
+        {
+          "rank": 3,
+          "score": 0.62887585,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-42c917bdce42",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 430,
+          "preview": "early births or you lose your baby you can still get statutory maternity leave and smp if your baby: - is born early - is stillborn after the start of your 24th"
+        },
+        {
+          "rank": 4,
+          "score": 0.628468,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-d830876f4686",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 458,
+          "preview": "notice periods you must tell your employer the baby's due date at least 15 weeks before the baby is expected. you can do this by filling in the online form (pre"
+        },
+        {
+          "rank": 5,
+          "score": 0.62244105,
+          "chunkId": "01a0c3c8-985a-754b-9e36-288d6efbc3cd",
+          "documentName": "govuk-statutory-sick-pay.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 104,
+          "preview": "if you're unhappy with a decision talk to your employer if you think: - their decision not to pay you ssp is wrong - you're not getting the right amount of ssp "
+        }
+      ]
+    },
+    {
+      "id": "q09",
+      "question": "My sick pay is running out but I'm still ill. What paperwork should my employer give me?",
+      "kind": "asks for a document, not a number",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.7777413,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.7777413,
+          "chunkId": "01a0c3c8-985a-754b-9e36-247e4d1e03b4",
+          "documentName": "govuk-statutory-sick-pay.txt",
+          "chunkIndex": 1,
+          "hit": true,
+          "tokens": 472,
+          "preview": "exceptions you will not qualify if you: - have received the maximum amount of ssp (28 weeks) - are getting statutory maternity pay linked periods of sickness if"
+        },
+        {
+          "rank": 2,
+          "score": 0.7676394,
+          "chunkId": "01a0c3c8-985a-754b-9e36-238b7227ccff",
+          "documentName": "govuk-statutory-sick-pay.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 471,
+          "preview": "statutory sick pay (ssp) overview you can get up to £123.25 per week statutory sick pay (ssp) if you're too ill to work. it's paid by your employer for up to 28"
+        },
+        {
+          "rank": 3,
+          "score": 0.7261546,
+          "chunkId": "01a0c3c8-985a-754b-9e36-288d6efbc3cd",
+          "documentName": "govuk-statutory-sick-pay.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 104,
+          "preview": "if you're unhappy with a decision talk to your employer if you think: - their decision not to pay you ssp is wrong - you're not getting the right amount of ssp "
+        },
+        {
+          "rank": 4,
+          "score": 0.71043134,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-42c917bdce42",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 430,
+          "preview": "early births or you lose your baby you can still get statutory maternity leave and smp if your baby: - is born early - is stillborn after the start of your 24th"
+        },
+        {
+          "rank": 5,
+          "score": 0.6877618,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f4fa605244f8",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 485,
+          "preview": "short-term and temporary lay-offs you can claim statutory redundancy pay if you're eligible and you've been temporarily laid off (without pay or less than half "
+        }
+      ]
+    },
+    {
+      "id": "q11",
+      "question": "Is my lunch break counted as working time?",
+      "kind": "plain",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.74782944,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.74782944,
+          "chunkId": "01a0c3c8-894a-76e9-a8c5-1ac786656c65",
+          "documentName": "govuk-maximum-weekly-working-hours.txt",
+          "chunkIndex": 1,
+          "hit": true,
+          "tokens": 450,
+          "preview": "what counts as work a working week includes: - job-related training - time spent travelling if you travel as part of your job, for example sales rep - working l"
+        },
+        {
+          "rank": 2,
+          "score": 0.7020099,
+          "chunkId": "01a0c3c8-894a-76e9-a8c5-17a09d2a63fb",
+          "documentName": "govuk-maximum-weekly-working-hours.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 458,
+          "preview": "maximum weekly working hours overview you cannot work more than 48 hours a week on average - normally averaged over 17 weeks. this law is sometimes called the '"
+        },
+        {
+          "rank": 3,
+          "score": 0.6595079,
+          "chunkId": "01a0c3c8-894a-76e9-a8c5-1d9fae133b6d",
+          "documentName": "govuk-maximum-weekly-working-hours.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 239,
+          "preview": "workers who cannot opt out you cannot opt-out of the 48 hour week if you're: - airline staff - a worker on ships or boats - a worker in the road transport indus"
+        },
+        {
+          "rank": 4,
+          "score": 0.6498928,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-2eaa9298cd8a",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 6,
+          "hit": false,
+          "tokens": 477,
+          "preview": "more information there's guidance for calculating holiday pay for workers without fixed hours or pay, which includes several examples. you can also contact the "
+        },
+        {
+          "rank": 5,
+          "score": 0.64896977,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-178449a9b33b",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 484,
+          "preview": "holiday entitlement entitlement almost all people classed as workers are legally entitled to 5.6 weeks' paid holiday a year (known as statutory leave entitlemen"
+        }
+      ]
+    },
+    {
+      "id": "q12",
+      "question": "How much notice do I have to give to cancel an agreement to work extra hours?",
+      "kind": "same number in several guides",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.74384964,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.74384964,
+          "chunkId": "01a0c3c8-894a-76e9-a8c5-1d9fae133b6d",
+          "documentName": "govuk-maximum-weekly-working-hours.txt",
+          "chunkIndex": 2,
+          "hit": true,
+          "tokens": 239,
+          "preview": "workers who cannot opt out you cannot opt-out of the 48 hour week if you're: - airline staff - a worker on ships or boats - a worker in the road transport indus"
+        },
+        {
+          "rank": 2,
+          "score": 0.7262317,
+          "chunkId": "01a0c3c8-894a-76e9-a8c5-1ac786656c65",
+          "documentName": "govuk-maximum-weekly-working-hours.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 450,
+          "preview": "what counts as work a working week includes: - job-related training - time spent travelling if you travel as part of your job, for example sales rep - working l"
+        },
+        {
+          "rank": 3,
+          "score": 0.7006246,
+          "chunkId": "01a0c3c8-894a-76e9-a8c5-17a09d2a63fb",
+          "documentName": "govuk-maximum-weekly-working-hours.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 458,
+          "preview": "maximum weekly working hours overview you cannot work more than 48 hours a week on average - normally averaged over 17 weeks. this law is sometimes called the '"
+        },
+        {
+          "rank": 4,
+          "score": 0.69252926,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-2eaa9298cd8a",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 6,
+          "hit": false,
+          "tokens": 477,
+          "preview": "more information there's guidance for calculating holiday pay for workers without fixed hours or pay, which includes several examples. you can also contact the "
+        },
+        {
+          "rank": 5,
+          "score": 0.668507,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-31a6dece1e2a",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 7,
+          "hit": false,
+          "tokens": 285,
+          "preview": "taking holiday before leaving a job during their notice period the worker may be able to take whatever is left of their statutory annual leave. use the holiday "
+        }
+      ]
+    },
+    {
+      "id": "q13",
+      "question": "How much redundancy pay do I get for each year of work if I'm over 41?",
+      "kind": "plain",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.80096966,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.80096966,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f025c5189cd9",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 2,
+          "hit": true,
+          "tokens": 443,
+          "preview": "statutory redundancy pay you'll normally be entitled to statutory redundancy pay if you're an employee and you've been working for your current employer for 2 y"
+        },
+        {
+          "rank": 2,
+          "score": 0.74254084,
+          "chunkId": "01a0c3c8-9338-724b-af6e-e9f47424b56b",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 492,
+          "preview": "redundancy: your rights overview redundancy is a form of dismissal from your job. it happens when employers need to reduce their workforce. if you're being made"
+        },
+        {
+          "rank": 3,
+          "score": 0.7336008,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f4fa605244f8",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 485,
+          "preview": "short-term and temporary lay-offs you can claim statutory redundancy pay if you're eligible and you've been temporarily laid off (without pay or less than half "
+        },
+        {
+          "rank": 4,
+          "score": 0.7047121,
+          "chunkId": "01a0c3c8-9338-724b-af6e-eeb91f0cd5d3",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 419,
+          "preview": "unfair selection you cannot be selected for the following reasons - your redundancy would be classed as an unfair dismissal: - sex - gender reassignment - marit"
+        },
+        {
+          "rank": 5,
+          "score": 0.6999986,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f9769f343b9d",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 4,
+          "hit": false,
+          "tokens": 470,
+          "preview": "payment in lieu of notice your employment can be ended without notice if 'payment in lieu of notice' is included in your contract. your employer will pay you in"
+        }
+      ]
+    },
+    {
+      "id": "q15",
+      "question": "Do I pay tax on my redundancy money?",
+      "kind": "plain",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.76550376,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.76550376,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f4fa605244f8",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 3,
+          "hit": true,
+          "tokens": 485,
+          "preview": "short-term and temporary lay-offs you can claim statutory redundancy pay if you're eligible and you've been temporarily laid off (without pay or less than half "
+        },
+        {
+          "rank": 2,
+          "score": 0.7331685,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f025c5189cd9",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 443,
+          "preview": "statutory redundancy pay you'll normally be entitled to statutory redundancy pay if you're an employee and you've been working for your current employer for 2 y"
+        },
+        {
+          "rank": 3,
+          "score": 0.7214345,
+          "chunkId": "01a0c3c8-9338-724b-af6e-e9f47424b56b",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 492,
+          "preview": "redundancy: your rights overview redundancy is a form of dismissal from your job. it happens when employers need to reduce their workforce. if you're being made"
+        },
+        {
+          "rank": 4,
+          "score": 0.70991385,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f9769f343b9d",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 4,
+          "hit": false,
+          "tokens": 470,
+          "preview": "payment in lieu of notice your employment can be ended without notice if 'payment in lieu of notice' is included in your contract. your employer will pay you in"
+        },
+        {
+          "rank": 5,
+          "score": 0.6791455,
+          "chunkId": "01a0c3c8-9338-724b-af6e-eeb91f0cd5d3",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 419,
+          "preview": "unfair selection you cannot be selected for the following reasons - your redundancy would be classed as an unfair dismissal: - sex - gender reassignment - marit"
+        }
+      ]
+    },
+    {
+      "id": "q16",
+      "question": "If I'm offered a different job instead of being made redundant, can I try it out before deciding?",
+      "kind": "plain",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.7796099,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.7796099,
+          "chunkId": "01a0c3c8-9338-724b-af6f-03a55239920d",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 6,
+          "hit": true,
+          "tokens": 553,
+          "preview": "trial periods you have the right to a 4-week trial period for any alternative employment you're offered. the 4-week period could be extended if you need trainin"
+        },
+        {
+          "rank": 2,
+          "score": 0.7328459,
+          "chunkId": "01a0c3c8-9338-724b-af6e-fdb744de667f",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 5,
+          "hit": false,
+          "tokens": 409,
+          "preview": "length of consultation there's no time limit for how long the period of consultation should be, but the minimum is: - 20 to 99 redundancies - the consultation m"
+        },
+        {
+          "rank": 3,
+          "score": 0.72645545,
+          "chunkId": "01a0c3c8-9338-724b-af6e-e9f47424b56b",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 492,
+          "preview": "redundancy: your rights overview redundancy is a form of dismissal from your job. it happens when employers need to reduce their workforce. if you're being made"
+        },
+        {
+          "rank": 4,
+          "score": 0.7002129,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f9769f343b9d",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 4,
+          "hit": false,
+          "tokens": 470,
+          "preview": "payment in lieu of notice your employment can be ended without notice if 'payment in lieu of notice' is included in your contract. your employer will pay you in"
+        },
+        {
+          "rank": 5,
+          "score": 0.6991735,
+          "chunkId": "01a0c3c8-9338-724b-af6e-eeb91f0cd5d3",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 419,
+          "preview": "unfair selection you cannot be selected for the following reasons - your redundancy would be classed as an unfair dismissal: - sex - gender reassignment - marit"
+        }
+      ]
+    },
+    {
+      "id": "q17",
+      "question": "Do I get paid for the time I spend at job interviews while working my notice?",
+      "kind": "number inside a long guide",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.71176887,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.71176887,
+          "chunkId": "01a0c3c8-9338-724b-af6f-03a55239920d",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 6,
+          "hit": true,
+          "tokens": 553,
+          "preview": "trial periods you have the right to a 4-week trial period for any alternative employment you're offered. the 4-week period could be extended if you need trainin"
+        },
+        {
+          "rank": 2,
+          "score": 0.70110893,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-31a6dece1e2a",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 7,
+          "hit": false,
+          "tokens": 285,
+          "preview": "taking holiday before leaving a job during their notice period the worker may be able to take whatever is left of their statutory annual leave. use the holiday "
+        },
+        {
+          "rank": 3,
+          "score": 0.6926538,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f9769f343b9d",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 4,
+          "hit": false,
+          "tokens": 470,
+          "preview": "payment in lieu of notice your employment can be ended without notice if 'payment in lieu of notice' is included in your contract. your employer will pay you in"
+        },
+        {
+          "rank": 4,
+          "score": 0.6798047,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f4fa605244f8",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 485,
+          "preview": "short-term and temporary lay-offs you can claim statutory redundancy pay if you're eligible and you've been temporarily laid off (without pay or less than half "
+        },
+        {
+          "rank": 5,
+          "score": 0.6716591,
+          "chunkId": "01a0c3c8-9338-724b-af6e-e9f47424b56b",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 492,
+          "preview": "redundancy: your rights overview redundancy is a form of dismissal from your job. it happens when employers need to reduce their workforce. if you're being made"
+        }
+      ]
+    },
+    {
+      "id": "q19",
+      "question": "How early before my due date can I start my maternity leave?",
+      "kind": "plain",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.7624489,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.7624489,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-38be85cc7d31",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 0,
+          "hit": true,
+          "tokens": 447,
+          "preview": "maternity pay and leave overview when you take time off to have a baby you might be eligible for: - statutory maternity leave - statutory maternity pay - paid t"
+        },
+        {
+          "rank": 2,
+          "score": 0.754316,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-42c917bdce42",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 430,
+          "preview": "early births or you lose your baby you can still get statutory maternity leave and smp if your baby: - is born early - is stillborn after the start of your 24th"
+        },
+        {
+          "rank": 3,
+          "score": 0.7178154,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-3c6b6a3110be",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 481,
+          "preview": "pay statutory maternity pay (smp) is paid for up to 39 weeks. you get: - 90% of your average weekly earnings (before tax) for the first 6 weeks - £194.32 or 90%"
+        },
+        {
+          "rank": 4,
+          "score": 0.7093779,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-d830876f4686",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 458,
+          "preview": "notice periods you must tell your employer the baby's due date at least 15 weeks before the baby is expected. you can do this by filling in the online form (pre"
+        },
+        {
+          "rank": 5,
+          "score": 0.70782375,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-dd96afaf8468",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 4,
+          "hit": false,
+          "tokens": 353,
+          "preview": "start and end dates - paternity leave your period of paternity leave can start as early as: - the date of placement - the date the child arrives in the uk if yo"
+        }
+      ]
+    },
+    {
+      "id": "q20",
+      "question": "I'm pregnant. How long before the due date do I have to tell my employer I want to take leave?",
+      "kind": "same number in several guides",
+      "answerable": true,
+      "rank": 2,
+      "topScore": 0.766347,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.766347,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-38be85cc7d31",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 447,
+          "preview": "maternity pay and leave overview when you take time off to have a baby you might be eligible for: - statutory maternity leave - statutory maternity pay - paid t"
+        },
+        {
+          "rank": 2,
+          "score": 0.7546603,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-42c917bdce42",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 2,
+          "hit": true,
+          "tokens": 430,
+          "preview": "early births or you lose your baby you can still get statutory maternity leave and smp if your baby: - is born early - is stillborn after the start of your 24th"
+        },
+        {
+          "rank": 3,
+          "score": 0.7520591,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-d830876f4686",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 458,
+          "preview": "notice periods you must tell your employer the baby's due date at least 15 weeks before the baby is expected. you can do this by filling in the online form (pre"
+        },
+        {
+          "rank": 4,
+          "score": 0.7112265,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-ce7c84361586",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 498,
+          "preview": "paternity pay and leave overview when you take time off because your partner's having a baby, adopting a child or having a baby through a surrogacy arrangement,"
+        },
+        {
+          "rank": 5,
+          "score": 0.7064061,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-dd96afaf8468",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 4,
+          "hit": false,
+          "tokens": 353,
+          "preview": "start and end dates - paternity leave your period of paternity leave can start as early as: - the date of placement - the date the child arrives in the uk if yo"
+        }
+      ]
+    },
+    {
+      "id": "q21",
+      "question": "My partner is expecting. When do I need to tell my boss the due date so I can take my time off?",
+      "kind": "same number in several guides",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.8127085,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.8127085,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-d830876f4686",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 3,
+          "hit": true,
+          "tokens": 458,
+          "preview": "notice periods you must tell your employer the baby's due date at least 15 weeks before the baby is expected. you can do this by filling in the online form (pre"
+        },
+        {
+          "rank": 2,
+          "score": 0.7980685,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-ce7c84361586",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 0,
+          "hit": true,
+          "tokens": 498,
+          "preview": "paternity pay and leave overview when you take time off because your partner's having a baby, adopting a child or having a baby through a surrogacy arrangement,"
+        },
+        {
+          "rank": 3,
+          "score": 0.76991534,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-dd96afaf8468",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 4,
+          "hit": false,
+          "tokens": 353,
+          "preview": "start and end dates - paternity leave your period of paternity leave can start as early as: - the date of placement - the date the child arrives in the uk if yo"
+        },
+        {
+          "rank": 4,
+          "score": 0.75282335,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-d5c6a4c1540b",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 433,
+          "preview": "eligibility you must be taking time off to look after the child and be one of the following: - the father - the husband or partner of the mother (or adopter) - "
+        },
+        {
+          "rank": 5,
+          "score": 0.7336486,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-d3c908677a40",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 463,
+          "preview": "unpaid parental leave you may also be eligible for 18 weeks unpaid parental leave per child, up to their 18th birthday. you can take paternity leave and unpaid "
+        }
+      ]
+    },
+    {
+      "id": "q22",
+      "question": "How much is the weekly pay for a new dad taking time off?",
+      "kind": "same number in several guides",
+      "answerable": true,
+      "rank": 3,
+      "topScore": 0.76790404,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.76790404,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-ce7c84361586",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 498,
+          "preview": "paternity pay and leave overview when you take time off because your partner's having a baby, adopting a child or having a baby through a surrogacy arrangement,"
+        },
+        {
+          "rank": 2,
+          "score": 0.7638064,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-d5c6a4c1540b",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 433,
+          "preview": "eligibility you must be taking time off to look after the child and be one of the following: - the father - the husband or partner of the mother (or adopter) - "
+        },
+        {
+          "rank": 3,
+          "score": 0.7595316,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-d3c908677a40",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 1,
+          "hit": true,
+          "tokens": 463,
+          "preview": "unpaid parental leave you may also be eligible for 18 weeks unpaid parental leave per child, up to their 18th birthday. you can take paternity leave and unpaid "
+        },
+        {
+          "rank": 4,
+          "score": 0.72449404,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-d830876f4686",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 458,
+          "preview": "notice periods you must tell your employer the baby's due date at least 15 weeks before the baby is expected. you can do this by filling in the online form (pre"
+        },
+        {
+          "rank": 5,
+          "score": 0.7160927,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-3c6b6a3110be",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 481,
+          "preview": "pay statutory maternity pay (smp) is paid for up to 39 weeks. you get: - 90% of your average weekly earnings (before tax) for the first 6 weeks - £194.32 or 90%"
+        }
+      ]
+    },
+    {
+      "id": "q25",
+      "question": "Can I ask to work from home from my very first day at a new job?",
+      "kind": "plain",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.6710031,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.6710031,
+          "chunkId": "01a0c3c8-74ca-74e7-a2ae-5a288e462c6a",
+          "documentName": "govuk-flexible-working.txt",
+          "chunkIndex": 0,
+          "hit": true,
+          "tokens": 490,
+          "preview": "flexible working overview flexible working is a way of working that suits an employee's needs, for example having flexible start and finish times, or working fr"
+        },
+        {
+          "rank": 2,
+          "score": 0.63044673,
+          "chunkId": "01a0c3c8-74cb-7418-bfab-8bab4c5c7572",
+          "documentName": "govuk-flexible-working.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 410,
+          "preview": "what the email or letter must include the application must include: - the date of the request - a statement that this is a statutory request for flexible workin"
+        },
+        {
+          "rank": 3,
+          "score": 0.6220699,
+          "chunkId": "01a0c3c8-74cb-7418-bfab-84a46c76bcc9",
+          "documentName": "govuk-flexible-working.txt",
+          "chunkIndex": 1,
+          "hit": true,
+          "tokens": 417,
+          "preview": "annualised hours the employee has to work a certain number of hours over the year but they have some flexibility about when they work. there are sometimes 'core"
+        },
+        {
+          "rank": 4,
+          "score": 0.60430604,
+          "chunkId": "01a0c3c8-74cb-7418-bfab-8e7853f3e0a4",
+          "documentName": "govuk-flexible-working.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 487,
+          "preview": "reasons for refusing employers can refuse an application for any of the following reasons: - extra costs that will damage the business - the work cannot be reor"
+        },
+        {
+          "rank": 5,
+          "score": 0.58981794,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-2399a9250d96",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 462,
+          "preview": "example someone works a 5-day week and is entitled to 28 days' annual leave a year. after their third month in the job, they'd be entitled to 7 days' leave (a q"
+        }
+      ]
+    },
+    {
+      "id": "q27",
+      "question": "My boss said no to my request to change my hours. Can I take them to a tribunal for that alone?",
+      "kind": "detail near other similar text",
+      "answerable": true,
+      "rank": 1,
+      "topScore": 0.76399636,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.76399636,
+          "chunkId": "01a0c3c8-74cb-7418-bfab-8e7853f3e0a4",
+          "documentName": "govuk-flexible-working.txt",
+          "chunkIndex": 3,
+          "hit": true,
+          "tokens": 487,
+          "preview": "reasons for refusing employers can refuse an application for any of the following reasons: - extra costs that will damage the business - the work cannot be reor"
+        },
+        {
+          "rank": 2,
+          "score": 0.7303884,
+          "chunkId": "01a0c3c8-74ca-74e7-a2ae-5a288e462c6a",
+          "documentName": "govuk-flexible-working.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 490,
+          "preview": "flexible working overview flexible working is a way of working that suits an employee's needs, for example having flexible start and finish times, or working fr"
+        },
+        {
+          "rank": 3,
+          "score": 0.69692934,
+          "chunkId": "01a0c3c8-74cb-7418-bfab-84a46c76bcc9",
+          "documentName": "govuk-flexible-working.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 417,
+          "preview": "annualised hours the employee has to work a certain number of hours over the year but they have some flexibility about when they work. there are sometimes 'core"
+        },
+        {
+          "rank": 4,
+          "score": 0.687384,
+          "chunkId": "01a0c3c8-74cb-7418-bfab-8bab4c5c7572",
+          "documentName": "govuk-flexible-working.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 410,
+          "preview": "what the email or letter must include the application must include: - the date of the request - a statement that this is a statutory request for flexible workin"
+        },
+        {
+          "rank": 5,
+          "score": 0.67145824,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-2eaa9298cd8a",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 6,
+          "hit": false,
+          "tokens": 477,
+          "preview": "more information there's guidance for calculating holiday pay for workers without fixed hours or pay, which includes several examples. you can also contact the "
+        }
+      ]
+    },
+    {
+      "id": "q28",
+      "question": "What is the current national minimum wage?",
+      "kind": "not in the guides",
+      "answerable": false,
+      "rank": null,
+      "topScore": 0.6327023,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.6327023,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-2ba7cda8fdae",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 5,
+          "hit": false,
+          "tokens": 469,
+          "preview": "workers who are paid monthly to work out a week's pay for someone who's paid monthly: - calculate the worker's average hourly pay for the last month. do this by"
+        },
+        {
+          "rank": 2,
+          "score": 0.6276377,
+          "chunkId": "01a0c3c8-894a-76e9-a8c5-17a09d2a63fb",
+          "documentName": "govuk-maximum-weekly-working-hours.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 458,
+          "preview": "maximum weekly working hours overview you cannot work more than 48 hours a week on average - normally averaged over 17 weeks. this law is sometimes called the '"
+        },
+        {
+          "rank": 3,
+          "score": 0.6107638,
+          "chunkId": "01a0c3c8-985a-754b-9e36-238b7227ccff",
+          "documentName": "govuk-statutory-sick-pay.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 471,
+          "preview": "statutory sick pay (ssp) overview you can get up to £123.25 per week statutory sick pay (ssp) if you're too ill to work. it's paid by your employer for up to 28"
+        },
+        {
+          "rank": 4,
+          "score": 0.6075772,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-3c6b6a3110be",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 481,
+          "preview": "pay statutory maternity pay (smp) is paid for up to 39 weeks. you get: - 90% of your average weekly earnings (before tax) for the first 6 weeks - £194.32 or 90%"
+        },
+        {
+          "rank": 5,
+          "score": 0.6050951,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-251922728c2b",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 4,
+          "hit": false,
+          "tokens": 467,
+          "preview": "if a worker was unable to take leave workers can carry over their whole leave entitlement if any of the following apply: - they did not receive 'rolled-up holid"
+        }
+      ]
+    },
+    {
+      "id": "q29",
+      "question": "How much is Statutory Adoption Pay each week?",
+      "kind": "not in the guides (only named, no details)",
+      "answerable": false,
+      "rank": null,
+      "topScore": 0.73237956,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.73237956,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-3c6b6a3110be",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 481,
+          "preview": "pay statutory maternity pay (smp) is paid for up to 39 weeks. you get: - 90% of your average weekly earnings (before tax) for the first 6 weeks - £194.32 or 90%"
+        },
+        {
+          "rank": 2,
+          "score": 0.7012297,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-d3c908677a40",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 1,
+          "hit": false,
+          "tokens": 463,
+          "preview": "unpaid parental leave you may also be eligible for 18 weeks unpaid parental leave per child, up to their 18th birthday. you can take paternity leave and unpaid "
+        },
+        {
+          "rank": 3,
+          "score": 0.6959481,
+          "chunkId": "01a0c3c8-985a-754b-9e36-238b7227ccff",
+          "documentName": "govuk-statutory-sick-pay.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 471,
+          "preview": "statutory sick pay (ssp) overview you can get up to £123.25 per week statutory sick pay (ssp) if you're too ill to work. it's paid by your employer for up to 28"
+        },
+        {
+          "rank": 4,
+          "score": 0.68803626,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-470248953b9e",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 192,
+          "preview": "extra help maternity benefits use a benefits calculator to see what help you can get from: - universal credit - child benefit you could get a £500 sure start ma"
+        },
+        {
+          "rank": 5,
+          "score": 0.67885184,
+          "chunkId": "01a0c3c8-84f7-744f-b64d-38be85cc7d31",
+          "documentName": "govuk-maternity-pay-leave.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 447,
+          "preview": "maternity pay and leave overview when you take time off to have a baby you might be eligible for: - statutory maternity leave - statutory maternity pay - paid t"
+        }
+      ]
+    },
+    {
+      "id": "q30",
+      "question": "How much notice do I have to give my employer if I want to resign?",
+      "kind": "not in the guides (close to a topic they cover)",
+      "answerable": false,
+      "rank": null,
+      "topScore": 0.6831976,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.6831976,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f4fa605244f8",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 3,
+          "hit": false,
+          "tokens": 485,
+          "preview": "short-term and temporary lay-offs you can claim statutory redundancy pay if you're eligible and you've been temporarily laid off (without pay or less than half "
+        },
+        {
+          "rank": 2,
+          "score": 0.6769706,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-31a6dece1e2a",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 7,
+          "hit": false,
+          "tokens": 285,
+          "preview": "taking holiday before leaving a job during their notice period the worker may be able to take whatever is left of their statutory annual leave. use the holiday "
+        },
+        {
+          "rank": 3,
+          "score": 0.6768584,
+          "chunkId": "01a0c3c8-894a-76e9-a8c5-1d9fae133b6d",
+          "documentName": "govuk-maximum-weekly-working-hours.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 239,
+          "preview": "workers who cannot opt out you cannot opt-out of the 48 hour week if you're: - airline staff - a worker on ships or boats - a worker in the road transport indus"
+        },
+        {
+          "rank": 4,
+          "score": 0.66703844,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f025c5189cd9",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 443,
+          "preview": "statutory redundancy pay you'll normally be entitled to statutory redundancy pay if you're an employee and you've been working for your current employer for 2 y"
+        },
+        {
+          "rank": 5,
+          "score": 0.6563746,
+          "chunkId": "01a0c3c8-9338-724b-af6e-e9f47424b56b",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 492,
+          "preview": "redundancy: your rights overview redundancy is a form of dismissal from your job. it happens when employers need to reduce their workforce. if you're being made"
+        }
+      ]
+    },
+    {
+      "id": "q32",
+      "question": "How many days of paid leave do I get when a close family member dies?",
+      "kind": "not in the guides (only named, no details)",
+      "answerable": false,
+      "rank": null,
+      "topScore": 0.626172,
+      "reachable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "score": 0.626172,
+          "chunkId": "01a0c3c8-7c5c-71fe-9197-178449a9b33b",
+          "documentName": "govuk-holiday-entitlement-rights.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 484,
+          "preview": "holiday entitlement entitlement almost all people classed as workers are legally entitled to 5.6 weeks' paid holiday a year (known as statutory leave entitlemen"
+        },
+        {
+          "rank": 2,
+          "score": 0.6202436,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-ce7c84361586",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 498,
+          "preview": "paternity pay and leave overview when you take time off because your partner's having a baby, adopting a child or having a baby through a surrogacy arrangement,"
+        },
+        {
+          "rank": 3,
+          "score": 0.61759865,
+          "chunkId": "01a0c3c8-9338-724b-af6e-f025c5189cd9",
+          "documentName": "govuk-redundancy-your-rights.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 443,
+          "preview": "statutory redundancy pay you'll normally be entitled to statutory redundancy pay if you're an employee and you've been working for your current employer for 2 y"
+        },
+        {
+          "rank": 4,
+          "score": 0.61558795,
+          "chunkId": "01a0c3c8-8e31-714b-8b73-d5c6a4c1540b",
+          "documentName": "govuk-paternity-pay-leave.txt",
+          "chunkIndex": 2,
+          "hit": false,
+          "tokens": 433,
+          "preview": "eligibility you must be taking time off to look after the child and be one of the following: - the father - the husband or partner of the mother (or adopter) - "
+        },
+        {
+          "rank": 5,
+          "score": 0.61526275,
+          "chunkId": "01a0c3c8-985a-754b-9e36-238b7227ccff",
+          "documentName": "govuk-statutory-sick-pay.txt",
+          "chunkIndex": 0,
+          "hit": false,
+          "tokens": 471,
+          "preview": "statutory sick pay (ssp) overview you can get up to £123.25 per week statutory sick pay (ssp) if you're too ill to work. it's paid by your employer for up to 28"
+        }
+      ]
+    }
+  ]
+}

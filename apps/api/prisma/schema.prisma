@@ -138,12 +138,14 @@ model DocumentChunk {
   documentId    String   @map("document_id")
   pageNumber    Int      @map("page_number") // a chunk never crosses a page
   chunkIndex    Int      @map("chunk_index") // order within the document, from 0
-  strategy      String // "paragraph" or "fixed". Both can exist for one document (Milestone 6 compares them)
+  strategy      String // "paragraph", "fixed" or "heading". All can exist for one document (Milestone 6 compares them)
   startChar     Int      @map("start_char") // position inside that page's text: page.text.slice(startChar, endChar) === text
   endChar       Int      @map("end_char")
   text          String
   tokenEstimate Int      @map("token_estimate") // characters / 4
   contentHash   String   @map("content_hash") // SHA-256 of the text, the embedding cache key
+  // Heading of the section this chunk starts in. Only the "heading" strategy sets it (Milestone 6), null otherwise.
+  heading       String?
   // The embedding setup (model, dimensions, wording) this chunk's vector was made with, or null if it has none.
   // A different current setup makes it "not embedded" again, so a model change shows up as work to do.
   embeddedWith  String?  @map("embedded_with")

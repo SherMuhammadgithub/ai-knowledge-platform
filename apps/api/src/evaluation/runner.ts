@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import type { ChunkStrategy } from "../chunking";
+import { estimateTokens, type ChunkStrategy } from "../chunking";
 import type { Prisma } from "../generated/prisma/client";
 import type { EmbeddingClient } from "../llm/types";
 import type { TenantDb } from "../prisma/tenant-client";
@@ -129,6 +129,7 @@ export async function runEvaluation(
       documentName: h.documentName,
       chunkIndex: h.chunkIndex,
       hit: q.answerable && isHit(q, h),
+      tokens: estimateTokens(h.text),
       preview: normalizeText(h.text).slice(0, 160),
     }));
     results.push({
@@ -219,6 +220,7 @@ export async function saveRun(db: TenantDb, report: EvalReport): Promise<string>
         quoteProblems: report.quoteProblems,
         unreachable: metrics.unreachable,
         unanswerable: metrics.unanswerable,
+        avgRetrievedTokens: metrics.avgRetrievedTokens,
         topScoreWhenAnswerable: metrics.topScoreWhenAnswerable,
         topScoreWhenUnanswerable: metrics.topScoreWhenUnanswerable,
       } as unknown as Prisma.InputJsonValue,

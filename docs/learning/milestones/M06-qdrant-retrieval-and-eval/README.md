@@ -1,6 +1,6 @@
 # Milestone 6: Qdrant retrieval and the mini evaluation
 
-**Status:** in progress, started 2026-09-21. Checkpoints A, B and C done (baseline stored). Waiting for your go on Checkpoint D.
+**Status:** built and measured, 2026-09-21. Quiz and exercises open (they never block anything). Next: Milestone 7 (basic RAG), which starts with concepts and a plan for you to read.
 **Time budget:** about 12 hours (from `docs/PLAN.md`). About 1 to 1.5 hours of that is yours: choosing the corpus and curating the test questions.
 
 ## Goal
@@ -20,12 +20,19 @@ retrieval  ---------------------->  evaluation harness
 
 ## Results so far
 
+- [`checkpoint-d-results.md`](checkpoint-d-results.md): the three-way chunking comparison, which questions changed, what the numbers do and do not show, a correction to Checkpoint C, the decision, and what was not tested.
 - [`checkpoint-c-results.md`](checkpoint-c-results.md): the baseline, what it does and does not show, the two rank-2 questions, score ranges for unanswerable questions, and what it means for Checkpoint D.
 - [`checkpoint-c-review-guide.md`](checkpoint-c-review-guide.md): your part of Checkpoint C. What to do with the 32 drafted questions, the rule that matters most, how a hit is judged, and the questions themselves.
 - [`checkpoint-b-results.md`](checkpoint-b-results.md): Qdrant built and checked, the design in practice, real results, tests, costs, gaps.
 - [`checkpoint-a-results.md`](checkpoint-a-results.md): Qdrant facts checked by experiment, corpus candidates with licences (two excluded), the foundation review, and three decisions for you.
 
-## Read first
+## Read first (the notes written at the end)
+
+- [`05-retrieval.md`](05-retrieval.md): retrieval end to end, Qdrant, filtering during the search, exact versus approximate search, two stores, what the measurements showed.
+- [`07-evaluation.md`](07-evaluation.md): what an evaluation is, hit rate and MRR, judging by quote, the traps, what our numbers show and do not show.
+- Quiz and exercises: `docs/learning/QUIZ.md`, section "Milestone 6: Qdrant retrieval and the mini evaluation".
+
+## Read first (before the milestone)
 
 1. [`concepts.md`](concepts.md): six concepts taught before any code (vector databases, filtering, top-K, measuring retrieval, the chunking experiment, headings).
 2. Your pre-coding exercise: `docs/learning/QUIZ.md`, section "Milestone 6, before coding".
@@ -52,12 +59,12 @@ Five checkpoints. I stop at each one, show you the result, and wait.
 - [x] C4. Baseline on `paragraph` chunks, stored (`eval_runs` row and `eval/runs/2026-09-21T08-58-40-paragraph-baseline.json`): hit rate @1 88.9%, @3 100%, @5 100%, MRR 0.944 over 18 answerable questions chosen by the assistant. Close to the ceiling, so D may show no difference.
 
 **Checkpoint D: the chunking experiment**
-- [ ] D1. Heading detection and a heading-aware chunker, with tests. The approach comes from your decision at A3.
-- [ ] D2. Embed the corpus under each strategy (a few thousand tokens per document, planned around the 30K tokens per minute limit).
-- [ ] D3. Run all three strategies on the same questions. A results table with the numbers, an analysis of the failures, and a decision on the default strategy. If time allows, three chunk sizes for the winner.
+- [x] D1. Heading detection (patterns, verified on all seven guides) and a heading-aware chunker that packs whole sections, with a `heading` column and 54 new tests. Word heading styles not built.
+- [x] D2. Corpus embedded under `fixed` and `heading` (`eval:prepare`): 14 Gemini calls, 10 to 11 seconds each, public text only. `paragraph` untouched.
+- [x] D3. Three stored runs on the same 22 questions: hit rate @1 `paragraph` 88.9%, `fixed` 66.7%, `heading` 83.3%; MRR 0.944, 0.815, 0.907. Failure analysis and decision (keep `paragraph`) in `checkpoint-d-results.md`. Chunk sizes not tested (needs a change to strategy identity, planned for Milestone 10).
 
 **Checkpoint E: closing**
-- [ ] E1. Topic notes `05-retrieval.md` and `07-evaluation.md` (started), quiz and exercises, `PROGRESS.md`, `DEMO_GUIDE.md`, this folder, the index.
+- [x] E1. Topic notes `05-retrieval.md` and `07-evaluation.md` (the second grows in Milestone 10), Milestone 6 quiz (7 questions) and exercises (3) in `QUIZ.md`, `PROGRESS.md`, `DEMO_GUIDE.md` (check T), this folder, the index, `10-lessons-learned.md`.
 
 ## Decisions (change any of these before we start)
 
@@ -82,16 +89,23 @@ Five checkpoints. I stop at each one, show you the result, and wait.
 5. What the chunking experiment showed with numbers, and what it could not show.
 6. What would make us change the foundation, based on the failures.
 
-## Files this milestone is expected to touch
+## Files this milestone touched
 
-`apps/api/src/vector/` (new), `apps/api/src/search/`, `apps/api/src/chunking/` (heading-aware chunker), `apps/api/src/processing/` (heading detection), `apps/api/prisma/schema.prisma` (evaluation tables), `apps/api/src/worker/`, `eval/` (corpus licences, questions, runs, harness), `apps/api/test/`, `docker-compose.yml` only if Qdrant needs a setting.
+- `apps/api/src/vector/`, `apps/api/src/search/qdrant-search.ts`, the indexer and document delete (Qdrant)
+- `apps/api/src/chunking/headings.ts` and the strategy plumbing (`index.ts`, `settings.ts`, `save-chunks.ts`, `config/env.ts`)
+- `apps/api/src/evaluation/` (questions, metrics, runner, compare) and `apps/api/src/scripts/` (`eval-run`, `eval-prepare`, `eval-compare`, `chunks-lab`, `qdrant-sync`, `search`)
+- `apps/api/prisma/schema.prisma` and migrations `eval_runs`, `chunk_heading`
+- `eval/` (corpus and licences, questions, stored runs)
+- `apps/api/test/` (vector, evaluation, headings, compare, heading-chunks, tenant isolation)
+- `docker-compose.yml` was not changed
 
 ## Your part
 
-- Choose the domain for the corpus (Checkpoint A).
-- Read about 30 proposed questions, rewrite or drop the weak ones, and write the expected quote for the ones you keep (Checkpoint C). About an hour.
-- Decide, after the foundation review, what goes into this milestone.
+- Choose the domain for the corpus (Checkpoint A): done, GOV.UK employment guidance.
+- Review the proposed questions (Checkpoint C): at your request the assistant chose keep or drop and nobody reworded them. This is the largest limit on the numbers.
+- Decide what goes into the milestone after the foundation review: done, heading detection went into Checkpoint D.
+- Decide the default chunking strategy (Checkpoint D): you agreed to keep `paragraph`.
 
 ## After the milestone
 
-Quiz and exercises go into `docs/learning/QUIZ.md` under "Milestone 6". Topic notes are created in this folder.
+Quiz and exercises are in `docs/learning/QUIZ.md` under "Milestone 6: Qdrant retrieval and the mini evaluation". Topic notes are in this folder. Say "check my answers" when you want them reviewed.

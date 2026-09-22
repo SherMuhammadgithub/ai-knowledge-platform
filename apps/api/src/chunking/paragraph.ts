@@ -1,7 +1,7 @@
 import { type ChunkPiece, type ChunkSettings, pieceOf, trimRange } from "./settings";
 
 // A leftover smaller than this share of the target is merged into the previous chunk instead of standing alone...
-const TAIL_SHARE = 0.15;
+export const TAIL_SHARE = 0.15;
 // ...as long as the merged chunk stays under this share of the target. No chunk is ever larger than that.
 export const HARD_MAX_SHARE = 1.25;
 
@@ -11,7 +11,7 @@ const sentenceSegmenter = new Intl.Segmenter("en", { granularity: "sentence" });
 type Unit = { start: number; end: number; para: number; paraFits: boolean };
 
 /** Paragraphs are separated by a blank line. Ranges are trimmed and never empty. */
-function paragraphRanges(text: string): { start: number; end: number }[] {
+export function paragraphRanges(text: string): { start: number; end: number }[] {
   const out: { start: number; end: number }[] = [];
   const add = (start: number, end: number) => {
     const range = trimRange(text, start, end);

@@ -92,6 +92,14 @@ describe("running the questions", () => {
     expect(report.metrics.mrr).toBe(1);
     expect(report.retrieval).toBe("qdrant");
 
+    // tokens retrieved: each chunk's estimate is characters / 4, and the run reports the average per question
+    const stored = await ctx.prisma.documentChunk.findMany({ select: { id: true, tokenEstimate: true } });
+    const tokensOf = new Map(stored.map((c) => [c.id, c.tokenEstimate]));
+    for (const r of report.results) for (const h of r.retrieved) expect(h.tokens).toBe(tokensOf.get(h.chunkId));
+    const perQuestion = report.results.map((r) => r.retrieved.reduce((sum, h) => sum + h.tokens, 0));
+    expect(report.metrics.avgRetrievedTokens).toBeCloseTo(perQuestion.reduce((a, b) => a + b, 0) / perQuestion.length);
+    expect(report.metrics.avgRetrievedTokens).toBeGreaterThan(500);
+
     // one batch call, for the questions only, as queries
     expect(ctx.embeddings.calls).toHaveLength(1);
     expect(ctx.embeddings.calls[0].purpose).toBe("query");
@@ -275,6 +283,7 @@ describe("storing a run", () => {
         answerable: 8,
         hitRate: { 1: 0.25, 3: 0.5, 5: 0.75 },
         mrr: 0.4,
+        avgRetrievedTokens: 1234.5,
         unreachable: 2,
         topScoreWhenAnswerable: { min: 0.6, median: 0.7, max: 0.8 },
         topScoreWhenUnanswerable: { min: 0.5, median: 0.55, max: 0.6 },
@@ -285,6 +294,7 @@ describe("storing a run", () => {
     expect(row.questionCount).toBe(1); // questions run, which is not the same as answerable ones
     expect(row.config).toMatchObject({
       unreachable: 2,
+      avgRetrievedTokens: 1234.5,
       topScoreWhenAnswerable: { min: 0.6, median: 0.7, max: 0.8 },
       topScoreWhenUnanswerable: { min: 0.5, median: 0.55, max: 0.6 },
     });

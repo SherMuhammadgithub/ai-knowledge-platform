@@ -21,11 +21,14 @@
     "start:worker": "node --env-file=../../.env dist-worker/worker.js",
     "samples": "bun run src/scripts/make-demo-files.ts",
     "chunks:rebuild": "bun --env-file=../../.env run src/scripts/chunks-rebuild.ts",
+    "chunks:lab": "bun run src/scripts/chunks-lab.ts",
     "embed:backfill": "bun --env-file=../../.env run src/scripts/embed-backfill.ts",
     "qdrant:sync": "bun --env-file=../../.env run src/scripts/qdrant-sync.ts",
     "search": "bun --env-file=../../.env run src/scripts/search.ts",
     "eval:check": "bun --env-file=../../.env run src/scripts/eval-run.ts --check",
-    "eval:run": "bun --env-file=../../.env run src/scripts/eval-run.ts"
+    "eval:run": "bun --env-file=../../.env run src/scripts/eval-run.ts",
+    "eval:prepare": "bun --env-file=../../.env run src/scripts/eval-prepare.ts",
+    "eval:compare": "bun run src/scripts/eval-compare.ts"
   },
   "dependencies": {
     "@google/genai": "^2.23.0",

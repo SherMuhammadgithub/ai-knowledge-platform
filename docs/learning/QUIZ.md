@@ -21,8 +21,10 @@ How to use it:
 | Milestone 5 quiz (6 questions) | not answered |
 | Milestone 5 exercises (3) | not done |
 | Milestone 6, before coding (2 questions) | not answered |
+| Milestone 6 quiz (7 questions) | not answered |
+| Milestone 6 exercises (3) | not done |
 
-Background reading for each part is in the other files in this folder: `09-production-ai.md` (Milestone 1), `tenant-isolation.md` (Milestones 2 and 3) `file-uploads.md` (Milestone 3), and `text-extraction.md` and `background-jobs.md` (Milestone 4).
+Background reading for each part is in the other files in this folder (Milestone 5 and 6 notes are inside their milestone folders): `09-production-ai.md` (Milestone 1), `tenant-isolation.md` (Milestones 2 and 3) `file-uploads.md` (Milestone 3), and `text-extraction.md` and `background-jobs.md` (Milestone 4).
 
 ---
 
@@ -546,4 +548,106 @@ Your answer:
 <summary>Answer key</summary>
 
 A gets nothing: the 5 closest chunks in the whole collection all belong to B, and removing them leaves an empty list, even though A has 3 good chunks. The second problem is privacy and isolation: the search touched B's data while working for A, and a small mistake in the removal step would leak it. The correct approach filters during the search, so only points where the workspace equals A are considered and the top 5 come from A's own chunks. The filter must be mandatory in the search function, with a test that fails when it is missing.
+</details>
+
+---
+
+## Milestone 6: Qdrant retrieval and the mini evaluation
+
+Reading: `docs/learning/milestones/M06-qdrant-retrieval-and-eval/` (`concepts.md`, `05-retrieval.md`, `07-evaluation.md`, and the results of Checkpoints C and D). Nothing waits on your answers.
+
+### Quiz
+
+**1. All three chunking strategies scored 100% on hit rate @3 and @5. What does that tell you about the strategies, and what would make the comparison more sensitive?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+It tells you almost nothing about the strategies. The corpus has only 36 chunks in seven guides, and four of the guides have 3 or 4 chunks each, so once search picks the right guide, the top 5 contains the whole guide and a hit is guaranteed. This is a ceiling effect: the test is too easy at those cutoffs. The numbers that could still move were hit rate @1 (88.9%, 66.7%, 83.3%) and MRR (0.944, 0.815, 0.907). To make the comparison more sensitive: more and harder questions (vague wording, answers that need two chunks), a bigger corpus, and reading @1 and MRR instead of @5. It is also a reason not to quote "100% hit rate" on its own.
+</details>
+
+**2. `paragraph` got the right chunk first for 16 of 18 questions and `heading` for 15 of 18. Is `heading` worse? And how is that different from `fixed`, which got 12 of 18?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+You cannot conclude that `heading` is worse. One question is 5.6 percentage points, and the two questions where `heading` ranked lower had tiny margins: on q20 the paragraph strategy had a tie (0.755 against 0.755) and `heading` lost to the overview chunk by 0.011, and on q22 three paternity chunks scored 0.768, 0.764 and 0.760. Its top score was higher than `paragraph`'s on 13 of 18 questions. The honest result is "no measurable difference on this question set". `fixed` is different: it is four questions behind, it ranks lower than `paragraph` on 5 questions and higher on 1, and its top score is lower on 16 of 18. Every measure points the same way, so that difference is much more believable. A useful habit: look at which questions flipped and by how much, not only at the totals.
+</details>
+
+**3. Each question is judged by "the retrieved chunk is from this document and contains this quote", not by a chunk id. Why, and what does the approach cost?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+Chunk ids change every time a document is cut again, and the milestone compares different ways of cutting, so an id from one strategy means nothing in another. A quote is the same under every strategy, so all of them are judged by one standard. The costs: someone has to write and check a quote for every question, a quote that a chunk boundary cuts in half can never be found (the harness reports those separately as "cut through", 0 in our runs, and short quotes make them rare), and a repeated passage can make two chunks both count as correct. Requiring the document name as well as the quote stops the same sentence in another guide (the same £194.32 appears in the maternity and paternity guides) from counting.
+</details>
+
+**4. Why must you decide which questions to keep before looking at how search handles them? What limits the numbers we got anyway?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+If you keep the questions the search answers well and drop the ones it fails, the score rises and means nothing: you have chosen the test to fit the system. The decision has to be made first, on one criterion (could a real person ask this?). In our set the assistant chose keep or drop, before any search results existed, which avoids that trap. But no human wrote or reworded the questions, so their wording stays close to the guides' own wording (a real employee says "doctor's note", the guide says "fit note"). Search does better when words are shared, so the scores probably lean high. Also the set is small (18 answerable), and one corpus of one kind of document. These limits are written next to every number.
+</details>
+
+**5. The evaluation run stops with an error if Qdrant holds a different number of points than Postgres holds chunks, instead of printing a warning and continuing. Why?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+A half-built index makes search miss chunks that exist, so the score falls for a reason that has nothing to do with the strategy or the model, and it looks like a real result. A number that carries a warning tends to be copied without it, into a table or a document, and then it is an unexplained fact. The stored run is the evidence that every number in the docs comes from, so it must not be produced when it would be misleading. The same rule applies when an expected quote is not in its document (a typo would count as a miss) and when the chunks have no vectors under the current embedding setup.
+</details>
+
+**6. The closest chunk scored 0.665 to 0.798 for questions the guides answer and 0.627 to 0.717 for questions they do not. Could a score cutoff make the system say "I don't know"?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+Not reliably. The ranges overlap. The highest unanswerable question (q29, about Statutory Adoption Pay, which the guides only name) scored 0.717, above two answerable questions (0.665 and 0.707). A question near a topic the guides mention but do not answer still matches strongly. As an illustration, a cutoff at 0.70 would refuse one real question and still answer q29, and a cutoff at 0.72 would refuse all four unanswerable questions and three answerable ones. With only 4 unanswerable questions this shows a direction, not a rule, and choosing a cutoff on the same questions would be tuning on the test. In Milestone 8 "I don't know" will need more than one score, for example the gap between results, an answer that must cite its sources, and a larger set of unanswerable questions.
+</details>
+
+**7. A document is deleted while Qdrant is down. What happens to the document, its points, and search? How would you find out and fix it?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+Postgres and Qdrant cannot be changed in one transaction, so Postgres is treated as the truth and Qdrant is written last. The document row (and its pages and chunks, by cascade) is deleted first. Removing its points from Qdrant fails, which is logged and does not stop the delete. The points stay behind but are harmless: search reads the chunk text from Postgres, and a point whose chunk no longer exists is skipped. To find them, `bun run --cwd apps/api qdrant:sync --check` compares the two stores and reports stale points without changing anything. `bun run --cwd apps/api qdrant:sync` removes them. The same tool rebuilds Qdrant completely from Postgres without any call to Gemini, which is why storing chunk text and vectors in Postgres matters.
+</details>
+
+### Exercises
+
+**A. Judge a chunk label.** Run `bun run --cwd apps/api chunks:lab ../../eval/corpus/govuk/govuk-holiday-entitlement-rights.txt --show heading`. Find the chunk whose `heading` label describes its content least well. What would a better label be, and how would you produce it in code?
+
+Your result:
+
+**B. Write harder questions.** Copy `eval/questions/govuk.json` to `eval/questions/mine.json`. Write five questions in your own words that do not use the guides' keywords, with quotes, and set them to `keep`. Do this before running anything. Then `bun run --cwd apps/api eval:check --questions ../../eval/questions/mine.json`, and run `eval:run --questions ../../eval/questions/mine.json --strategy paragraph --label mine` and again with `--strategy heading`, then `eval:compare` on the two files. Did the hit rate @1 change? Did any strategy fail on a question you expected it to get?
+
+Your result:
+
+**C. Show who improved.** Change `apps/api/src/scripts/eval-compare.ts` (and `evaluation/compare.ts` if you prefer) so that, for each run after the first, it prints how many answerable questions ranked better and how many ranked worse than in the first run. A miss counts as the worst rank.
+
+Your result:
+
+<details>
+<summary>Hints</summary>
+
+A: chunk 4 of the heading strategy for that guide contains the answer to the carry-over question and is labelled "Example", because the label is the first section's heading and a chunk packs several sections. A better label would list every heading in the chunk, or the most specific one for each part. In code, `chunkByHeadings` knows the sections it packs into a chunk (`open`), so it could collect their headings instead of keeping only the first.
+
+B: `eval:check` makes no Gemini call and tells you if a quote is not in the guide. The two runs send only your five short questions to Gemini (public text). Compare runs are only allowed when both used the same question file, which is why both use `mine.json`. Decide which questions to keep before the first run, not after.
+
+C: treat `null` as a large number, for example `const worse = (a, b) => (a ?? 99) > (b ?? 99)`. Loop over `result.questions`, skip questions that are not answerable, and compare `ranks[i]` with `ranks[0]`.
 </details>

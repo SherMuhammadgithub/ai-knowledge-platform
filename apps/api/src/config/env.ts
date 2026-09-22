@@ -33,7 +33,7 @@ const schema = z.object({
   MAX_PDF_PAGES: z.coerce.number().int().positive().default(300),
   PROCESSING_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(60),
   // Chunking (Milestone 5). Sizes are in estimated tokens (characters / 4). Starting guesses: Milestone 6 measures them.
-  CHUNK_STRATEGY: z.enum(["paragraph", "fixed"]).default("paragraph"),
+  CHUNK_STRATEGY: z.enum(["paragraph", "fixed", "heading"]).default("paragraph"),
   CHUNK_TARGET_TOKENS: z.coerce.number().int().min(50).max(2000).default(500),
   CHUNK_OVERLAP_TOKENS: z.coerce.number().int().min(0).max(500).default(60),
 }).refine((e) => e.CHUNK_OVERLAP_TOKENS * 2 <= e.CHUNK_TARGET_TOKENS, {

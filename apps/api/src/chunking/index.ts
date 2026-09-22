@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { chunkFixed } from "./fixed";
+import { chunkByHeadings } from "./headings";
 import { chunkParagraphs } from "./paragraph";
 import { type ChunkSettings, type ChunkStrategy, estimateTokens } from "./settings";
 
@@ -16,9 +17,11 @@ export type ChunkDraft = {
   text: string;
   tokenEstimate: number;
   contentHash: string;
+  /** Heading of the section the chunk starts in. Set by the "heading" strategy only, null for the others. */
+  heading: string | null;
 };
 
-const CHUNKERS = { fixed: chunkFixed, paragraph: chunkParagraphs } as const;
+const CHUNKERS = { fixed: chunkFixed, paragraph: chunkParagraphs, heading: chunkByHeadings } as const;
 
 export const sha256 = (text: string) => createHash("sha256").update(text).digest("hex");
 
@@ -41,6 +44,7 @@ export function chunkPages(
         text: piece.text,
         tokenEstimate: estimateTokens(piece.text),
         contentHash: sha256(piece.text),
+        heading: piece.heading ?? null,
       });
     }
   }
