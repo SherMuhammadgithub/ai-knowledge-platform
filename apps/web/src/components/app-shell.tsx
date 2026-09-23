@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Menu, Users } from "lucide-react";
+import { FileText, Menu, MessageCircleQuestion, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import type { Me } from "@/lib/types";
 
 const NAV = [
+  { href: "/ask", label: "Ask", icon: MessageCircleQuestion },
   { href: "/", label: "Documents", icon: FileText },
   { href: "/members", label: "Members", icon: Users },
 ];

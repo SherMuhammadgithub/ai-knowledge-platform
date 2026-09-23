@@ -22,9 +22,19 @@ export type GenerateResult = {
   thoughtTokens: number | null;
 };
 
+/** One piece of an answer as it is produced. Text only: the running totals arrive once, at the end. */
+export type GenerateStreamChunk = { text: string };
+
 export interface LlmClient {
   readonly model: string;
   generate(request: GenerateRequest): Promise<GenerateResult>;
+  /**
+   * Same call, streamed. Yields each piece of text as it arrives, then returns the same GenerateResult
+   * `generate()` would have (its final value, read after the loop finishes: `const { value } = await it.next()`
+   * once `done` is true, or the value `for await` discards). Retrying happens only while opening the stream: once
+   * a piece of text has been yielded, a failure ends the stream rather than starting over and duplicating text.
+   */
+  generateStream(request: GenerateRequest): AsyncGenerator<GenerateStreamChunk, GenerateResult>;
 }
 
 // Intent, not provider parameters. Some models take a task-type flag, others want the task

@@ -1,6 +1,6 @@
 # Milestone 7: Basic RAG
 
-**Status:** Checkpoint B done (the answer endpoint, non-streaming). Waiting for your go on Checkpoint C (streaming and the web page).
+**Status:** Checkpoints A, B and C done in code (backend and the Ask page), live-verified except the real happy path (Gemini is having a demand spike) and the visual browser check (needs your own browser, see checkpoint-c-results.md). Waiting on your check before this milestone closes.
 **Time budget:** about 10 hours (from `docs/PLAN.md`).
 
 ## Goal
@@ -25,6 +25,8 @@ question --embed--> Qdrant (top K, this workspace) --> Postgres (chunk text)
 
 1. [`concepts.md`](concepts.md): six concepts taught before any code (context construction, system vs. user instructions, temperature, streaming, cost and latency tracking, "I don't know" handling).
 2. `apps/api/src/llm/types.ts` and `apps/api/src/llm/gemini/gemini-llm-client.ts`: the generation client already built in Milestone 1. This milestone is the first to call it for real.
+3. [`checkpoint-b-results.md`](checkpoint-b-results.md): the plain answer endpoint, verification, and the first sign of Gemini's latency.
+4. [`checkpoint-c-results.md`](checkpoint-c-results.md): the streaming design, the proxy bug found and fixed, what the live checks did and did not prove, and the browser check that is now your part.
 
 ## Plan
 
@@ -42,9 +44,11 @@ Three checkpoints. I stop at each one, show you the result, and wait.
 - [x] B6. Live check with real Gemini against the Acme demo documents ("Expense policy (sample).txt" etc.): an answerable question got a correct, grounded, concise answer with real sources; an unanswerable one got the exact refusal phrase. Real tokens and latency recorded below, not estimated.
 
 **Checkpoint C: streaming and a minimal web page**
-- [ ] C1. A streaming version of the same call (`generateContentStream`), sent to the browser over SSE.
-- [ ] C2. A small Ask page in `apps/web` (read `docs/FRONTEND_RULES.md` first): a question box, the answer appearing as it streams, a plain list of sources underneath.
-- [ ] C3. Live browser check, topic note `04-rag.md`, quiz questions, `PROGRESS.md` and `DEMO_GUIDE.md` updated.
+- [x] C1. A streaming version of the same call (`generateContentStream`), sent to the browser over SSE. Retrying only covers opening the stream, never a piece already sent. The custom failure event is named `failed`, not `error`, so it cannot collide with the browser's own connection-error handling.
+- [x] C2. The Ask page in `apps/web` (`FRONTEND_RULES.md` followed): a question box, the answer streaming in with a Stop button and a cursor, a plain sources list, and a closed-by-default Details disclosure with model, timings, tokens and similarity scores in mono.
+- [x] C3a. Live check found and fixed a real bug: the generic `/api/*` proxy killed the SSE connection after about 150ms. Fixed with a dedicated streaming Route Handler, reverified four times.
+- [ ] C3b. The visual browser check itself: your part, `checkpoint-c-results.md` has the steps.
+- [ ] C3c. Topic note `04-rag.md`, quiz questions, `PROGRESS.md` and `DEMO_GUIDE.md`: after C3b.
 
 ## Decisions (change any of these at Checkpoint A)
 
@@ -69,14 +73,14 @@ One free-tier fact worth knowing before the live checks: `GEMINI_GENERATION_RPM`
 4. Why token counts and latency are tracked now, but dollar cost is not yet.
 5. What is deliberately left out of this milestone, and which later milestone picks it up.
 
-## Files this milestone is expected to touch
+## Files this milestone touched
 
-`apps/api/src/rag/` (new), `apps/api/src/llm/gemini/gemini-llm-client.ts` (a streaming method), `apps/api/test/` (new tests, a `FakeLlmClient`), `apps/web/src/` (a small Ask page, following `docs/FRONTEND_RULES.md`), `docs/learning/milestones/M07-basic-rag/`, `docs/learning/QUIZ.md`, `docs/PROGRESS.md`, `docs/DEMO_GUIDE.md`.
+`apps/api/src/rag/` (new), `apps/api/src/llm/` (a streaming method, the `LLM` DI token), `apps/api/test/` (new tests, `FakeLlmClient`), `apps/web/src/components/ask-view.tsx` and `apps/web/src/app/(app)/ask/page.tsx` (the page), `apps/web/src/app/api/ask/stream/route.ts` (the streaming proxy fix, not in the original plan), `apps/web/src/components/app-shell.tsx` (nav entry), `docs/learning/milestones/M07-basic-rag/`.
 
 ## Your part
 
-- Confirm or change the decisions above (Checkpoint A).
-- Try the Ask page yourself once it exists (Checkpoint C), with a question the documents answer and one they do not.
+- ~~Confirm or change the decisions at Checkpoint A.~~ Done.
+- **Now:** the browser check in `checkpoint-c-results.md`, since the assistant's browser tool cannot reach `localhost` in this environment. Ask a question the documents answer and one they do not, try Stop, open Details, check both widths and themes, and try the keyboard.
 
 ## After the milestone
 

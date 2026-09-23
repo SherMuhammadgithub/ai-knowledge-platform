@@ -41,6 +41,19 @@ async function readyDocument(workspaceId: string, text: string, name = "handbook
 }
 
 const ask = (a: ReturnType<typeof agent>, question: string) => a.post("/ask").send({ question });
+const askStream = (a: ReturnType<typeof agent>, question: string) => a.get("/ask/stream").query({ question });
+
+/** Splits raw `text/event-stream` text into { type, data } records, one per event, in order. */
+function parseSse(raw: string): { type: string; data: unknown }[] {
+  return raw
+    .split("\n\n")
+    .filter((block) => block.trim())
+    .map((block) => {
+      const type = /^event: (.*)$/m.exec(block)?.[1] ?? "message";
+      const dataLines = [...block.matchAll(/^data: (.*)$/gm)].map((m) => m[1]);
+      return { type, data: dataLines.length ? JSON.parse(dataLines.join("\n")) : undefined };
+    });
+}
 
 describe("asking a question", () => {
   it("answers from this workspace's documents, passing the fixed prompt shape and settings to the model", async () => {
@@ -142,5 +155,72 @@ describe("asking a question", () => {
     const kept = result.sources[0].documentName;
     const dropped = kept === "handbook.txt" ? "kitchen.txt" : "handbook.txt";
     expect(ctx.llm.calls.at(-1)!.prompt).not.toContain(dropped);
+  });
+});
+
+describe("asking a question, streamed", () => {
+  it("streams the answer as delta events, then one done event with the same shape the plain endpoint returns", async () => {
+    const { agent: a, me } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    await readyDocument(me.activeWorkspaceId!, "Full-time employees get 25 days of paid annual leave.");
+    ctx.llm.replies = ["Full-time staff get 25 days."];
+
+    const res = await askStream(a, "How many days of annual leave do full-time employees get?");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/event-stream");
+
+    const events = parseSse(res.text);
+    // A status event marks retrieving, then generating, before any text: real generation calls can take far
+    // longer than retrieval, and the UI needs to say so instead of still claiming to be "searching".
+    expect(events[0]).toMatchObject({ type: "status", data: { status: "retrieving" } });
+    expect(events[1]).toMatchObject({ type: "status", data: { status: "generating" } });
+
+    const middle = events.slice(2, -1);
+    expect(middle.length).toBeGreaterThan(1); // more than one delta, or streaming bought nothing
+    for (const e of middle) expect(e.type).toBe("delta");
+    const deltas = middle.map((e) => (e.data as { text: string }).text);
+    expect(deltas.join("")).toBe("Full-time staff get 25 days."); // the words, back together, are the whole answer
+
+    const done = events.at(-1)!;
+    expect(done.type).toBe("done");
+    expect(done.data).toMatchObject({ answer: "Full-time staff get 25 days.", noAnswer: false });
+    expect((done.data as { sources: unknown[] }).sources).toHaveLength(1);
+  });
+
+  it("streams the not-found answer as a single delta after a retrieving status, with no model call and no generating status", async () => {
+    const { agent: a } = await registerUser(ctx.app, "alice@a.com", "Alice"); // no documents
+
+    const events = parseSse((await askStream(a, "How many vacation days do I get?")).text);
+    expect(events.map((e) => e.type)).toEqual(["status", "delta", "done"]);
+    expect(events[0].data).toMatchObject({ status: "retrieving" });
+    expect((events[1].data as { text: string }).text).toBe(NOT_FOUND_ANSWER);
+    expect(events[2].data).toMatchObject({ noAnswer: true, sources: [] });
+    expect(ctx.llm.calls).toHaveLength(0); // "generating" never happens: there was nothing to generate from
+  });
+
+  it("turns a failure to open the stream into a clean, distinctly-named event instead of a broken connection", async () => {
+    const { agent: a, me } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    await readyDocument(me.activeWorkspaceId!, "Full-time employees get 25 days of paid annual leave.");
+    ctx.llm.failures = [Object.assign(new Error("provider unavailable"), { status: 503 })];
+
+    const events = parseSse((await askStream(a, "How many days of leave?")).text);
+    // retrieving, generating, then the failure: retrieval succeeded (there was something to generate from), so
+    // both status events fire before the model call itself fails.
+    expect(events.map((e) => e.type)).toEqual(["status", "status", "failed"]);
+    // Named "failed", not "error": EventSource reserves "error" for its own connection failures, dispatched
+    // with no .data, to the same listener a server-sent "error" event would reach. A real failure must stay
+    // distinguishable from a dropped connection on the browser side.
+    expect((events.at(-1)!.data as { message: string }).message).toContain("provider unavailable");
+  });
+
+  it("validates the question the same way as the plain endpoint, before opening the stream", async () => {
+    const { agent: a } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    const res = await a.get("/ask/stream").query({ question: "hi" });
+    expect(res.status).toBe(400);
+    expect(res.headers["content-type"]).not.toContain("text/event-stream");
+  });
+
+  it("requires a session, like the plain endpoint", async () => {
+    const res = await askStream(agent(ctx.app), "How many vacation days do I get?");
+    expect(res.status).toBe(401);
   });
 });

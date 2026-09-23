@@ -82,6 +82,35 @@ export const STATUS_LABEL: Record<DocumentStatus, string> = {
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 export const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".txt"];
 
+// Milestone 7. Mirrors apps/api/src/rag/rag.service.ts's AnswerResult.
+export type AnswerSource = {
+  chunkId: string;
+  documentId: string;
+  documentName: string;
+  pageNumber: number;
+  chunkIndex: number;
+  /** Cosine similarity to the question, 0 to 1. Not a confidence percentage: label it "similarity score". */
+  score: number;
+};
+
+export type AnswerUsage = {
+  model: string;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  thoughtTokens: number | null;
+  retrievalMs: number;
+  generationMs: number;
+};
+
+export type AnswerResult = {
+  answer: string;
+  /** True when the model itself decided the documents do not answer the question. Not an error. */
+  noAnswer: boolean;
+  /** Only the passages actually shown to the model, never more. Empty when noAnswer's reason is "nothing retrieved". */
+  sources: AnswerSource[];
+  usage: AnswerUsage;
+};
+
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;

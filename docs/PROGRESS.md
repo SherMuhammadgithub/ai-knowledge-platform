@@ -1,7 +1,7 @@
 # Progress
 
-**Current milestone:** 7 (basic RAG). Checkpoint A (design) and Checkpoint B (the answer endpoint, non-streaming) are done. Waiting for your go on Checkpoint C (streaming and the web page).
-**Next action:** the user says go for Checkpoint C of Milestone 7 (streaming, a minimal Ask page in `apps/web`), or reacts to the unexplained generation latency noted in `docs/learning/milestones/M07-basic-rag/checkpoint-b-results.md`.
+**Current milestone:** 7 (basic RAG). Checkpoints A, B and C are done in code and mostly live-verified. Waiting on the user's own browser check (see below) before closing the milestone.
+**Next action:** the user does the browser check in `docs/learning/milestones/M07-basic-rag/checkpoint-c-results.md` (Ask page, both answer and refusal, Stop, Details, both widths, both themes, keyboard) and reports back, including whether Gemini's demand spike has cleared.
 
 ## Milestones
 
@@ -202,6 +202,15 @@ Checkpoint B (done): the answer endpoint.
 - [x] 328 API tests pass (16 new: 9 unit, 7 end-to-end with a fake LLM). 10 deliberate breaks, all caught (two mutation-script bugs found and fixed along the way)
 - [x] Live check, real Gemini, Acme Corp's fictional demo documents: a correct grounded answer with real sources, a correct refusal for an unanswerable question
 - [ ] Not yet explained: both live generation calls took 1 to 2 minutes (one had 3 retries, one succeeded first try and was still slow). Noted, not investigated (a Milestone 13 question)
+
+Checkpoint C (done in code, mostly live-verified): streaming and the Ask page.
+- [x] `RagService.answerStream()`, `LlmClient.generateStream()`, `GET /ask/stream` (Nest `@Sse`), sharing retrieval with the plain endpoint. 5 new e2e tests, 7 deliberate breaks all caught. 333 API tests total
+- [x] The Ask page (`apps/web/src/components/ask-view.tsx`): waiting, streaming (Stop button, cursor, `aria-live`), done, refused (plain text, never red), failed (retry) states. Sources plain, similarity scores only inside a closed Details disclosure, in mono. Build and lint pass, contrast unchanged
+- [x] Found and fixed a real bug: the generic `/api/*` rewrite proxy killed the SSE connection after about 150ms. Fixed with `apps/web/src/app/api/ask/stream/route.ts`, a real Route Handler that streams the upstream body directly (Next checks the filesystem before an array-form rewrite applies). Reverified 4 times: the connection now survives 20 to 30 seconds, matching a direct call to the API
+- [x] Live-verified: the zero-hits path (via tests), and a real Gemini failure streamed cleanly end to end (a `failed` event, not a broken connection), reproduced 4 times
+- [ ] Not verified live: a full successful streamed answer. Gemini (`gemini-3.5-flash-lite`) returned "high demand" 503s on every one of 4 real attempts over several minutes. Very likely the explanation for Checkpoint B's unexplained latency too, though not confirmed beyond this session
+- [x] User's first live try found a real gap: the page stuck on "Searching your documents…" with no sign of progress once generation started (retrieval finished in under 2 seconds per the API log, generation can take a minute or more). Fixed: `answerStream()` now sends a `status` event (`retrieving`, then `generating`) before any text, and the page's waiting text follows it. 4 more deliberate breaks, all caught (333 tests total, unchanged: existing tests updated, not added)
+- [ ] Not done by the assistant: the visual browser check (states, both widths, both themes, keyboard). The browser automation tool in this session cannot reach `localhost` (confirmed against an external site, so this is an environment limit, not a page bug). This is the user's part now
 
 ## Environment (checked 2026-09-19)
 

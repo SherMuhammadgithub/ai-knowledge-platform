@@ -9,7 +9,7 @@ import type { EmbeddingClient, LlmClient } from "../llm/types";
 import { TenantPrismaService } from "../prisma/tenant-prisma.service";
 import { searchChunksWithIndex } from "../search/qdrant-search";
 import { VectorIndexService } from "../vector/vector-index.service";
-import { buildContext, buildUserPrompt, CONTEXT_TOKEN_BUDGET, MAX_OUTPUT_TOKENS, NOT_FOUND_ANSWER, RAG_TOP_K, REFUSAL_PHRASE, SYSTEM_PROMPT, TEMPERATURE } from "./prompt";
+import { buildContext, buildUserPrompt, type Context, CONTEXT_TOKEN_BUDGET, MAX_OUTPUT_TOKENS, NOT_FOUND_ANSWER, RAG_TOP_K, REFUSAL_PHRASE, SYSTEM_PROMPT, TEMPERATURE } from "./prompt";
 
 export type AnswerSource = {
   chunkId: string;
@@ -37,6 +37,14 @@ export type AnswerResult = {
 };
 
 /**
+ * What `answerStream()` yields. `status` marks a real phase change the caller cannot otherwise see: real
+ * generation calls have taken anywhere from a few seconds to over a minute in practice, and retrieval typically
+ * finishes in under two seconds, so without this a UI has nothing to show for most of that wait except "still
+ * searching", which is no longer true once generation has actually started.
+ */
+export type AnswerStreamEvent = { type: "status"; status: "retrieving" | "generating" } | { type: "delta"; text: string };
+
+/**
  * Question in, grounded answer out (Milestone 7). No citations formatting (Milestone 8), no conversation
  * history (Milestone 9): every call is answered alone, from this workspace's documents only.
  */
@@ -59,37 +67,93 @@ export class RagService {
   }
 
   async answer(actor: WorkspaceAuth, question: string): Promise<AnswerResult> {
-    const db = this.tenant.for(actor);
-
-    // Retrieval: embed the question and search Qdrant, filtered to this workspace by the scoped client, exactly
-    // like the search script and the evaluation harness. No text is read outside what this call returns.
-    const retrievalStarted = Date.now();
-    const hits = await searchChunksWithIndex(db, this.vectorIndex, this.embeddings, this.strategy, question, RAG_TOP_K);
-    const retrievalMs = Date.now() - retrievalStarted;
-
-    // Nothing to read: skip the model call rather than pay for an answer whose content is already known.
-    if (hits.length === 0) {
-      return {
-        answer: NOT_FOUND_ANSWER,
-        noAnswer: true,
-        sources: [],
-        usage: { model: this.llm.model, inputTokens: null, outputTokens: null, thoughtTokens: null, retrievalMs, generationMs: 0 },
-      };
-    }
-
-    const context = buildContext(hits, this.contextTokenBudget);
+    const retrieved = await this.retrieve(actor, question);
+    if (retrieved.context === null) return this.notFound(retrieved.retrievalMs);
 
     const generationStarted = Date.now();
     const result = await this.llm.generate({
       system: SYSTEM_PROMPT,
-      prompt: buildUserPrompt(question, context.text),
+      prompt: buildUserPrompt(question, retrieved.context.text),
       temperature: TEMPERATURE,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       thinking: "minimal",
     });
     const generationMs = Date.now() - generationStarted;
 
-    const answer = result.text.trim();
+    return this.toResult(result.text, retrieved.context, {
+      model: result.model,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      thoughtTokens: result.thoughtTokens,
+      retrievalMs: retrieved.retrievalMs,
+      generationMs,
+    });
+  }
+
+  /**
+   * Same as `answer()`, streamed: yields each piece of the answer as it arrives (or the whole refusal at once,
+   * for the zero-hits case, so the caller never has to special-case it), then returns the same AnswerResult.
+   */
+  async *answerStream(actor: WorkspaceAuth, question: string): AsyncGenerator<AnswerStreamEvent, AnswerResult> {
+    yield { type: "status", status: "retrieving" };
+    const retrieved = await this.retrieve(actor, question);
+    if (retrieved.context === null) {
+      yield { type: "delta", text: NOT_FOUND_ANSWER };
+      return this.notFound(retrieved.retrievalMs);
+    }
+
+    yield { type: "status", status: "generating" };
+    const generationStarted = Date.now();
+    const stream = this.llm.generateStream({
+      system: SYSTEM_PROMPT,
+      prompt: buildUserPrompt(question, retrieved.context.text),
+      temperature: TEMPERATURE,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      thinking: "minimal",
+    });
+    let step = await stream.next();
+    while (!step.done) {
+      yield { type: "delta", text: step.value.text };
+      step = await stream.next();
+    }
+    const result = step.value;
+    const generationMs = Date.now() - generationStarted;
+
+    return this.toResult(result.text, retrieved.context, {
+      model: result.model,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      thoughtTokens: result.thoughtTokens,
+      retrievalMs: retrieved.retrievalMs,
+      generationMs,
+    });
+  }
+
+  /**
+   * Retrieval, shared by `answer()` and `answerStream()`: embed the question and search Qdrant, filtered to
+   * this workspace by the scoped client, exactly like the search script and the evaluation harness. No text is
+   * read outside what this call returns. `context` is null when nothing was retrieved, the signal to skip the
+   * model call rather than pay for an answer whose content is already known.
+   */
+  private async retrieve(actor: WorkspaceAuth, question: string): Promise<{ context: Context | null; retrievalMs: number }> {
+    const db = this.tenant.for(actor);
+    const retrievalStarted = Date.now();
+    const hits = await searchChunksWithIndex(db, this.vectorIndex, this.embeddings, this.strategy, question, RAG_TOP_K);
+    const retrievalMs = Date.now() - retrievalStarted;
+    return { context: hits.length === 0 ? null : buildContext(hits, this.contextTokenBudget), retrievalMs };
+  }
+
+  private notFound(retrievalMs: number): AnswerResult {
+    return {
+      answer: NOT_FOUND_ANSWER,
+      noAnswer: true,
+      sources: [],
+      usage: { model: this.llm.model, inputTokens: null, outputTokens: null, thoughtTokens: null, retrievalMs, generationMs: 0 },
+    };
+  }
+
+  private toResult(text: string, context: Context, usage: AnswerUsage): AnswerResult {
+    const answer = text.trim();
     return {
       answer,
       noAnswer: answer.startsWith(REFUSAL_PHRASE),
@@ -103,7 +167,7 @@ export class RagService {
         chunkIndex: h.chunkIndex,
         score: h.score,
       })),
-      usage: { model: result.model, inputTokens: result.inputTokens, outputTokens: result.outputTokens, thoughtTokens: result.thoughtTokens, retrievalMs, generationMs },
+      usage,
     };
   }
 }
