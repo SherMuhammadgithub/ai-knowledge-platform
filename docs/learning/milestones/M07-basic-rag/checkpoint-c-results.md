@@ -2,7 +2,9 @@
 
 Streaming and the Ask page. The backend and the frontend code are both done and verified live. The one thing I could not do myself is click through the page in a real browser, explained below, with the check handed to you.
 
-> **Update, 2026-09-23:** your first live try showed the page stuck on "Searching your documents…" with no sign of progress. The fix (a `status` event marking retrieving vs. generating) is below, in "The design in practice" and reflected in the updated test count. Please try the browser check again with this build.
+> **Update, 2026-09-23:** your first live try showed the page stuck on "Searching your documents…" with no sign of progress. The fix (a `status` event marking retrieving vs. generating) is below, in "The design in practice" and reflected in the updated test count.
+>
+> **Second update, 2026-09-23:** you tried it again after the fix and confirmed it works. Checkpoint C, and Milestone 7, are done.
 
 ## What was built
 

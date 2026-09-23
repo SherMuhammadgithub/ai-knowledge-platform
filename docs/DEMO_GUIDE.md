@@ -192,6 +192,15 @@ Needs the worker restarted with the Milestone 6 code. Run `bun run --cwd apps/ap
 5. Delete the equipment policy and run the check again: still "in step", so its points were removed with it.
 6. The evaluation corpus is in its own workspace: sign in as `eval@akp.test` (password `eval-password-123`) to see the seven GOV.UK guides. It is separate from the demo accounts and is not removed by `bun run seed`.
 
+### U. The Ask page (basic RAG)
+Needs the API and the web app running (`bun run api`, `bun run web`). No worker needed: this only reads chunks and vectors that already exist. Sends the question to Gemini, so keep it to fictional demo content or the GOV.UK guides.
+1. Sign in as `alice@acme.test`, open **Ask** in the sidebar. Type a question the demo documents answer, for example "How much money can I claim for setting up my desk at home?"
+2. Watch the states: "Searching your documents..." for a second or two, then "Getting an answer, this can take a minute or more if the model is busy" while it waits on Gemini (real generation calls have taken anywhere from a few seconds to over a minute), then the answer streaming in with a blinking cursor and a **Stop** button.
+3. Ask something the documents do not answer, for example "What is the policy on pets in the office?" It should say plainly that it is not in the documents, in normal text color, never red.
+4. Open **Details** on a finished answer: model, retrieval and generation time, token counts, and each source's similarity score, all in monospace. It is closed by default and never shown as a confidence percentage.
+5. Click **Stop** partway through a streaming answer. It stops cleanly and says the answer may be incomplete.
+6. Resize the window to about 390px wide, and try dark mode. The layout, states and focus rings should all still work.
+
 ### T. Evaluation and chunking strategies
 No API or worker needed, only Docker (Postgres and Qdrant). Only the commands marked "Gemini" send text to Gemini, and it is public GOV.UK text.
 1. `bun run --cwd apps/api eval:check`: "22 expected quotes checked ... 22 found in a chunk, 0 with a problem". It reads the question file and the guides, and makes no Gemini call.
@@ -208,7 +217,7 @@ No API or worker needed, only Docker (Postgres and Qdrant). Only the commands ma
 bun run test
 ```
 
-312 tests run against a separate `akp_test` database (and a separate queue), never the dev ones. They cover sign up and sign in, forged and tampered cookies, roles, cross-workspace access, the immediate removal in check G, the workspace-scoped database client, file type detection, storage safety, duplicate and oversized uploads, and who may delete what. Also text extraction from real generated PDF and Word files, every cleaning rule, the zip-bomb guard, the queue with a real worker, retries, the sweeper, and a job that names the wrong workspace. Also the chunkers (including a test on 300 random pages), chunks saved and replaced together with the pages, and chunks kept separate per workspace. Also the token limiter, vector storage, the embedding step with a fake provider (progress, the cache, retries, errors that can never work, model change, deleting vectors with documents), search isolation, and both workers end to end. No test calls a real embedding provider. The search index tests use the real Qdrant, each with a collection of its own that is deleted afterwards. Also, from Milestone 6: Qdrant with a collection per test app (isolation, filters, points written and removed, consistency), the evaluation harness (quote matching, hit rate and MRR, refusing meaningless runs, stored runs, comparing runs), heading detection checked against the real GOV.UK guides, and the three chunking strategies living side by side.
+333 tests run against a separate `akp_test` database (and a separate queue), never the dev ones. They cover sign up and sign in, forged and tampered cookies, roles, cross-workspace access, the immediate removal in check G, the workspace-scoped database client, file type detection, storage safety, duplicate and oversized uploads, and who may delete what. Also text extraction from real generated PDF and Word files, every cleaning rule, the zip-bomb guard, the queue with a real worker, retries, the sweeper, and a job that names the wrong workspace. Also the chunkers (including a test on 300 random pages), chunks saved and replaced together with the pages, and chunks kept separate per workspace. Also the token limiter, vector storage, the embedding step with a fake provider (progress, the cache, retries, errors that can never work, model change, deleting vectors with documents), search isolation, and both workers end to end. No test calls a real embedding provider. The search index tests use the real Qdrant, each with a collection of its own that is deleted afterwards. Also, from Milestone 6: Qdrant with a collection per test app (isolation, filters, points written and removed, consistency), the evaluation harness (quote matching, hit rate and MRR, refusing meaningless runs, stored runs, comparing runs), heading detection checked against the real GOV.UK guides, and the three chunking strategies living side by side. Also, from Milestone 7: the answer endpoint and its streaming twin, both against a fake LLM so no test calls a real one, the zero-hits shortcut, the refusal phrase, the retrieving/generating status events, and the custom `failed` SSE event staying distinct from the browser's own `error` handling.
 
 ## 5. Reset the demo data
 
@@ -222,7 +231,7 @@ If you want a completely empty database instead, `docker compose down -v` and st
 
 ## 6. What comes next
 
-Milestone 6 is done: vectors are in Qdrant with a mandatory workspace filter, and a small evaluation (22 questions) measured the three chunking strategies. The default stays paragraph. Milestone 7 adds the answer: the retrieved chunks are given to the generation model.
+Milestone 7 is done: question in, grounded answer out, streamed to the Ask page, with sources and a details drawer. No citations yet, no conversation history yet. Milestone 8 adds the answer: the retrieved chunks are given to the generation model.
 
 ## 7. Stopping things properly
 

@@ -1,6 +1,6 @@
 # Milestone 7: Basic RAG
 
-**Status:** Checkpoints A, B and C done in code (backend and the Ask page), live-verified except the real happy path (Gemini is having a demand spike) and the visual browser check (needs your own browser, see checkpoint-c-results.md). Waiting on your check before this milestone closes.
+**Status:** done, 2026-09-23. All three checkpoints built, tested, and confirmed live in your own browser. Quiz open (never blocks anything). Next: Milestone 8 (Citations), which starts with concepts and a plan for you to read.
 **Time budget:** about 10 hours (from `docs/PLAN.md`).
 
 ## Goal
@@ -47,8 +47,8 @@ Three checkpoints. I stop at each one, show you the result, and wait.
 - [x] C1. A streaming version of the same call (`generateContentStream`), sent to the browser over SSE. Retrying only covers opening the stream, never a piece already sent. The custom failure event is named `failed`, not `error`, so it cannot collide with the browser's own connection-error handling.
 - [x] C2. The Ask page in `apps/web` (`FRONTEND_RULES.md` followed): a question box, the answer streaming in with a Stop button and a cursor, a plain sources list, and a closed-by-default Details disclosure with model, timings, tokens and similarity scores in mono.
 - [x] C3a. Live check found and fixed a real bug: the generic `/api/*` proxy killed the SSE connection after about 150ms. Fixed with a dedicated streaming Route Handler, reverified four times.
-- [ ] C3b. The visual browser check itself: your part, `checkpoint-c-results.md` has the steps.
-- [ ] C3c. Topic note `04-rag.md`, quiz questions, `PROGRESS.md` and `DEMO_GUIDE.md`: after C3b.
+- [x] C3b. You checked it live in your own browser (2026-09-23) and confirmed it works.
+- [x] C3c. Topic note `04-rag.md`, Milestone 7 quiz (6 questions) and exercises (3) in `QUIZ.md`, `PROGRESS.md`, `DEMO_GUIDE.md` (check U), the milestone index.
 
 ## Decisions (change any of these at Checkpoint A)
 
@@ -80,7 +80,7 @@ One free-tier fact worth knowing before the live checks: `GEMINI_GENERATION_RPM`
 ## Your part
 
 - ~~Confirm or change the decisions at Checkpoint A.~~ Done.
-- **Now:** the browser check in `checkpoint-c-results.md`, since the assistant's browser tool cannot reach `localhost` in this environment. Ask a question the documents answer and one they do not, try Stop, open Details, check both widths and themes, and try the keyboard.
+- ~~The browser check.~~ Done, 2026-09-23: confirmed working.
 
 ## After the milestone
 

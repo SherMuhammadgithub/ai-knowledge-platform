@@ -1,7 +1,7 @@
 # Progress
 
-**Current milestone:** 7 (basic RAG). Checkpoints A, B and C are done in code and mostly live-verified. Waiting on the user's own browser check (see below) before closing the milestone.
-**Next action:** the user does the browser check in `docs/learning/milestones/M07-basic-rag/checkpoint-c-results.md` (Ask page, both answer and refusal, Stop, Details, both widths, both themes, keyboard) and reports back, including whether Gemini's demand spike has cleared.
+**Current milestone:** 7 (basic RAG) is done, confirmed live in the user's own browser 2026-09-23. Quizzes for Milestones 1 to 7 are unanswered in `docs/learning/QUIZ.md` and do not block anything.
+**Next action:** the user says go for Milestone 8 (Citations). Claude first teaches its concepts and writes its plan into a new milestone folder for the user to read and change, before any code.
 
 ## Milestones
 
@@ -11,7 +11,7 @@
 - [x] 4. Processing worker (quiz pending)
 - [x] 5. Chunking and embeddings (quiz pending)
 - [x] 6. Qdrant retrieval + mini eval (quiz pending)
-- [ ] 7. Basic RAG (Checkpoints A and B done, waiting on Checkpoint C)
+- [x] 7. Basic RAG (quiz pending)
 - [ ] 8. Citations
 - [ ] 9. Conversational RAG
 - [ ] 10. Full evaluation
@@ -210,7 +210,9 @@ Checkpoint C (done in code, mostly live-verified): streaming and the Ask page.
 - [x] Live-verified: the zero-hits path (via tests), and a real Gemini failure streamed cleanly end to end (a `failed` event, not a broken connection), reproduced 4 times
 - [ ] Not verified live: a full successful streamed answer. Gemini (`gemini-3.5-flash-lite`) returned "high demand" 503s on every one of 4 real attempts over several minutes. Very likely the explanation for Checkpoint B's unexplained latency too, though not confirmed beyond this session
 - [x] User's first live try found a real gap: the page stuck on "Searching your documents…" with no sign of progress once generation started (retrieval finished in under 2 seconds per the API log, generation can take a minute or more). Fixed: `answerStream()` now sends a `status` event (`retrieving`, then `generating`) before any text, and the page's waiting text follows it. 4 more deliberate breaks, all caught (333 tests total, unchanged: existing tests updated, not added)
-- [ ] Not done by the assistant: the visual browser check (states, both widths, both themes, keyboard). The browser automation tool in this session cannot reach `localhost` (confirmed against an external site, so this is an environment limit, not a page bug). This is the user's part now
+- [x] The user checked it live in their own browser (2026-09-23) and confirmed it works
+
+**Milestone 7 summary.** Question in, grounded answer out, streamed to a minimal Ask page. Retrieval and context-building shared between the plain and streaming paths. "I don't know" handled by a fixed refusal phrase, not a score (Milestone 6 showed a score cutoff cannot separate answerable from unanswerable reliably). Two real bugs found live and fixed, not just noted: an SSE event name colliding with the browser's own reserved `error` handling, and the generic proxy killing the SSE connection after about 150ms (fixed with a dedicated Route Handler). A UX gap found on the user's own first live try (no sign of progress once generation started) fixed with a `status` event. 333 API tests, typecheck and the web build all clean. No citations, no conversation history, no dollar cost: all deliberately left to later milestones.
 
 ## Environment (checked 2026-09-19)
 

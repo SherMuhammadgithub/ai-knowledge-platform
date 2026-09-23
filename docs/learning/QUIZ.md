@@ -23,6 +23,8 @@ How to use it:
 | Milestone 6, before coding (2 questions) | not answered |
 | Milestone 6 quiz (7 questions) | not answered |
 | Milestone 6 exercises (3) | not done |
+| Milestone 7 quiz (6 questions) | not answered |
+| Milestone 7 exercises (3) | not done |
 
 Background reading for each part is in the other files in this folder (Milestone 5 and 6 notes are inside their milestone folders): `09-production-ai.md` (Milestone 1), `tenant-isolation.md` (Milestones 2 and 3) `file-uploads.md` (Milestone 3), and `text-extraction.md` and `background-jobs.md` (Milestone 4).
 
@@ -650,4 +652,96 @@ A: chunk 4 of the heading strategy for that guide contains the answer to the car
 B: `eval:check` makes no Gemini call and tells you if a quote is not in the guide. The two runs send only your five short questions to Gemini (public text). Compare runs are only allowed when both used the same question file, which is why both use `mine.json`. Decide which questions to keep before the first run, not after.
 
 C: treat `null` as a large number, for example `const worse = (a, b) => (a ?? 99) > (b ?? 99)`. Loop over `result.questions`, skip questions that are not answerable, and compare `ranks[i]` with `ranks[0]`.
+</details>
+
+---
+
+## Milestone 7: Basic RAG
+
+Reading: `docs/learning/milestones/M07-basic-rag/` (`concepts.md`, `04-rag.md`, and the results of Checkpoints B and C). Nothing waits on your answers.
+
+### Quiz
+
+**1. The grounding rule ("only answer from what you're given") is set once, in the system instruction, not typed into every question. Why there, and what would go wrong putting it in the user prompt instead?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+The rule has to hold for every question with no exceptions, so it belongs in the one fixed slot that is sent unchanged on every call. Putting it in the user prompt would mean retyping it (or a prompt-building function forgetting to) each time, and it would sit next to the question as just more text to weigh against, instead of as a standing instruction above it. `GeminiLlmClient.generate()` already separates `system` from `prompt`; this milestone was the first to put real content in the system slot.
+</details>
+
+**2. Milestone 6 found that a retrieval score cannot reliably separate answerable from unanswerable questions. What replaced it here, and what is the new approach's own weakness?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+A fixed refusal phrase in the system instruction, checked in the model's reply with `startsWith()`, exposed as `noAnswer: boolean`. The weakness: it depends on the model actually producing that exact sentence when it decides to refuse. Nothing here verifies the claims in an answer against the passages it was given, which is why this is explicitly temporary; Milestone 8 replaces it with structured, verified output.
+</details>
+
+**3. Retrieval finds nothing at all for a question (an empty workspace). What does the API do, and why is that better than calling the model anyway?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+It returns the fixed "not found" answer directly and skips the model call entirely. The content of that answer is already known before asking, so paying for a generation call (money, latency, a free-tier request against the rate limit) would buy nothing. Tests confirm the fake LLM's `calls` count stays at zero in this case.
+</details>
+
+**4. A live check showed the Ask page stuck on "Searching your documents..." for well over a minute, even though the server log showed retrieval had finished in under two seconds. What was actually happening, and what was added to fix it?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+Generation (the real Gemini call) was still in progress; during a demand spike it took over a minute, sometimes several. The page had no way to know retrieval had already finished and generation had started, so it kept showing text that was no longer accurate. The fix: `answerStream()` now yields a `status` event ("retrieving", then "generating") before any answer text, and the page's waiting message follows it, so a long wait during generation reads as "the model is busy," not as "nothing is happening."
+</details>
+
+**5. The custom SSE event sent when a stream fails is named `failed`, not `error`. Why does the name matter, not just its contents?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+The browser's `EventSource` reserves the event name `error` for its own connection failures (a plain `Event`, dispatched with no data, to whatever listener is registered for "error"). If the server also sent a named `error` event, a real application failure (a Gemini error, say) and a genuinely dropped connection would arrive at the exact same listener, and the client would have no reliable way to tell them apart. A test checks the event's name directly, not only that it carries the right message, because a mutation that reused "error" would otherwise pass a test that only checked the content.
+</details>
+
+**6. A live check found the app's generic `/api/*` proxy killed a long-lived streaming connection after about 150 milliseconds, every time. How was this actually diagnosed, rather than guessed, and why was the fix a dedicated Route Handler instead of a change to the proxy's configuration?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+A script read the response chunk by chunk with timestamps, once through the normal proxy (port 3000) and once straight to the API (port 3001). Through the proxy the connection died at about 150ms every time; straight to the API it stayed open correctly until a real result arrived, 20 to 30 seconds later. That isolated the fault to the proxy, not to the Nest code or to Gemini, and it was confirmed by reproducing it four times, not once. The fix used a real Next.js Route Handler (`apps/web/src/app/api/ask/stream/route.ts`) that explicitly pipes the upstream response's `ReadableStream` body through, because Next.js documents that pattern for proxying a stream; the generic `rewrites()` config is a general-purpose URL rewrite, not built or documented for a long-lived streaming body, and changing it would have meant hoping it worked rather than knowing why it would.
+</details>
+
+### Exercises
+
+**A. Compare the two paths.** Ask the same question through `POST /ask` (for example with curl, or a small script like the ones used to verify this milestone) and through the Ask page in the browser. Compare `usage.retrievalMs` and `usage.generationMs` between the two calls.
+
+Your result:
+
+**B. Shrink the budget on purpose.** Temporarily set `CONTEXT_TOKEN_BUDGET` in `apps/api/src/rag/prompt.ts` to something small, like 200, restart the API, and ask a question where several documents are relevant. How many sources come back now, compared to before? Put the constant back afterward.
+
+Your result:
+
+**C. Ask something borderline.** Ask a question close to what the documents cover but not quite answered by them (a topic only named in passing, not explained). Look at the `sources` the API returns even though `noAnswer` is true, and their scores. Are they close to what an answerable question scores, or clearly lower?
+
+Your result:
+
+<details>
+<summary>Hints</summary>
+
+A: the two calls go through the exact same `RagService` retrieval code, so the retrieval time should be close between them. Generation time will vary more, since it depends on Gemini's response time at that moment.
+
+B: with a small budget, `buildContext` keeps the first (best-scoring) chunk even if it alone is over budget, then stops before adding a second one that would pass it. Expect one source, maybe two, instead of up to five.
+
+C: retrieval almost always finds something (embedding similarity rarely returns literally nothing), so `sources` is usually non-empty even for a refused question, because those chunks were shown to the model and it chose not to use them. Milestone 6 found these near-miss scores often sit close to real answers' scores, which is exactly why a score alone cannot decide "I don't know."
 </details>
