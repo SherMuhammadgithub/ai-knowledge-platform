@@ -1,6 +1,6 @@
 # Milestone 8: Citations
 
-**Status:** planned, concepts and plan written. Waiting on your Checkpoint A confirmation before any code.
+**Status:** Checkpoints A and B built, tested, and live-checked with real Gemini (2026-09-26). Waiting on your browser check, see `checkpoint-b-results.md`.
 **Time budget:** about 8 hours (from `docs/PLAN.md`).
 
 ## Goal
@@ -27,21 +27,23 @@ Streaming (GET /ask/stream):
 1. [`concepts.md`](concepts.md): six concepts taught before any code (structured output, the streaming/structured-output tension, verification scope, claim-level citations, the highlight decision, showing unverified citations rather than hiding them).
 2. `apps/api/src/rag/prompt.ts`, `rag.service.ts`, `rag.controller.ts`: Milestone 7's code this milestone extends, not replaces.
 3. `docs/FRONTEND_RULES.md` sections on citations (already written, this milestone builds to match it, not the reverse).
+4. [`checkpoint-b-results.md`](checkpoint-b-results.md): what was built, the live checks (both real and honestly-not-observed), the tests, and your part.
 
 ## Plan
 
 Two checkpoints. I stop at each one, show you the result, and wait.
 
 **Checkpoint A: design (this document, no code)**
-- [ ] A1. You confirm or change the decisions below.
+- [x] A1. You confirmed the decisions below with "go".
 
 **Checkpoint B: citations end to end (backend, then the frontend source panel)**
-- [ ] B1. Citation schema and prompt changes: the system instruction gains the `[N]` marker convention (`N` = the same numbering `buildContext()` already assigns); `responseSchema` defined for the plain endpoint.
-- [ ] B2. `RagService`: the plain path calls `generate()` with the schema and parses the structured reply; the streaming path parses `[N]` markers out of the completed text with a regex. Both produce the same `citations: [{ marker, sourceIndex, verified }]` array, run through one shared verification function.
-- [ ] B3. Verification: a citation is `verified: true` only if `sourceIndex` refers to a chunk that was actually included in `context.used` (the same list `sources` is already built from). Anything else is `verified: false`, kept, not dropped.
-- [ ] B4. Tests: unit tests for the marker parser and the verifier (invented index, out-of-range index, a chunk the token budget dropped, duplicate markers, no markers at all), e2e tests for both endpoints proving `citations` comes back correctly shaped and that an invented citation is marked unverified, not silently removed or silently trusted. Deliberate-break testing on the new logic, same as every milestone so far.
-- [ ] B5. Frontend: citation chips inside the answer text, a source panel that opens on click, the highlight on the cited chunk (`bg-cite`), the distinct visual state for an unverified citation (`warning` token, not `destructive`, since an unverified citation is a gap to flag, not a failure to alarm about). Follows `FRONTEND_RULES.md` throughout (contrast, focus, reduced motion, Escape closes the panel).
-- [ ] B6. Live check with real Gemini: at least one answer with a correctly verified citation, and an attempt to observe (or, failing that, to construct with the fake client and document honestly) what an unverified citation looks like in the running app.
+- [x] B1. Citation schema and prompt changes: the system instruction gains the `[N]` marker convention (`N` = the same numbering `buildContext()` already assigns); `responseSchema` defined for the plain endpoint.
+- [x] B2. `RagService`: the plain path calls `generate()` with the schema and parses the structured reply; the streaming path parses `[N]` markers out of the completed text with a regex. Both produce the same `citations: [{ marker, sourceIndex, verified }]` array, run through one shared verification function.
+- [x] B3. Verification: a citation is `verified: true` only if `sourceIndex` refers to a chunk that was actually included in `context.used` (the same list `sources` is already built from). Anything else is `verified: false`, kept, not dropped.
+- [x] B4. Tests: unit tests for the marker parser and the verifier (invented index, out-of-range index, duplicate markers, no markers at all), e2e tests for both endpoints proving `citations` comes back correctly shaped and that an invented citation is marked unverified, not silently removed or silently trusted. Deliberate-break testing on the new logic, same as every milestone so far: see `checkpoint-b-results.md`.
+- [x] B5. Frontend: citation chips inside the answer text, a source panel that opens on click, the highlight on the cited chunk (`bg-cite`), the distinct visual state for an unverified citation (`warning` token, not `destructive`, since an unverified citation is a gap to flag, not a failure to alarm about). Follows `FRONTEND_RULES.md` throughout.
+- [x] B6. Live check with real Gemini: both endpoints produced a correctly verified citation on the first try. An unverified citation was not observed live (the real model did not misbehave); it is proven by a fake-client test instead, documented honestly in `checkpoint-b-results.md`.
+- [ ] B7. Your browser check (visual states, both themes and widths, keyboard and Escape): see `checkpoint-b-results.md`, "Your part".
 
 ## Decisions (change any of these at Checkpoint A)
 
@@ -66,13 +68,14 @@ One open question I don't have a firm recommendation on yet: if a non-refusal an
 3. Why an unverified citation is shown, not hidden.
 4. Why citations aren't persisted yet, and which milestone changes that.
 
-## Files this milestone will touch
+## Files this milestone touched
 
-`apps/api/src/rag/prompt.ts`, `rag.service.ts`, `rag.controller.ts` (all extended, not replaced), `apps/api/test/` (new tests), `apps/web/src/components/ask-view.tsx` (citation chips, source panel, highlight), `apps/web/src/lib/types.ts` (the `citations` field), `docs/learning/milestones/M08-citations/`.
+`apps/api/src/rag/prompt.ts`, `rag.service.ts` (extended, not replaced), `apps/api/src/llm/types.ts` and `gemini/gemini-llm-client.ts` (the `JsonSchema` type and its translation to Gemini's schema), `apps/api/test/` (19 new tests), `apps/web/src/components/ask-view.tsx` (citation chips, the source panel, the highlight), `apps/web/src/lib/types.ts` (`Citation`, `AnswerSource.text`), `docs/learning/milestones/M08-citations/`.
 
 ## Your part
 
-- Confirm or change the decisions at Checkpoint A, especially the streaming-vs-schema split and the "unverified" visual treatment, since those are the two calls with real tradeoffs attached.
+- ~~Confirm or change the decisions at Checkpoint A.~~ Done, confirmed with "go".
+- **Now:** the browser check in `checkpoint-b-results.md` (B7 above), since the assistant's browser tool cannot reach `localhost` in this environment.
 
 ## After the milestone
 

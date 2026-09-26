@@ -1,8 +1,10 @@
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel, Type, type Schema } from "@google/genai";
 import type {
   GenerateRequest,
   GenerateResult,
   GenerateStreamChunk,
+  JsonSchema,
+  JsonSchemaType,
   LlmClient,
   ThinkingSetting,
   UsageSink,
@@ -24,6 +26,26 @@ const THINKING: Record<ThinkingSetting, ThinkingLevel> = {
   high: ThinkingLevel.HIGH,
 };
 
+const SCHEMA_TYPE: Record<JsonSchemaType, Type> = {
+  object: Type.OBJECT,
+  array: Type.ARRAY,
+  string: Type.STRING,
+  number: Type.NUMBER,
+  integer: Type.INTEGER,
+  boolean: Type.BOOLEAN,
+};
+
+/** Translates the provider-agnostic `JsonSchema` (types.ts) into the shape Gemini's `responseSchema` wants. */
+function toGeminiSchema(schema: JsonSchema): Schema {
+  return {
+    type: SCHEMA_TYPE[schema.type],
+    description: schema.description,
+    properties: schema.properties ? Object.fromEntries(Object.entries(schema.properties).map(([key, value]) => [key, toGeminiSchema(value)])) : undefined,
+    items: schema.items ? toGeminiSchema(schema.items) : undefined,
+    required: schema.required,
+  };
+}
+
 export class GeminiLlmClient implements LlmClient {
   private readonly ai: GoogleGenAI;
   readonly model: string;
@@ -39,6 +61,7 @@ export class GeminiLlmClient implements LlmClient {
       temperature: request.temperature,
       maxOutputTokens: request.maxOutputTokens,
       thinkingConfig: { thinkingLevel: THINKING[request.thinking ?? "minimal"] },
+      ...(request.responseSchema ? { responseMimeType: "application/json", responseSchema: toGeminiSchema(request.responseSchema) } : {}),
     };
   }
 

@@ -9,7 +9,24 @@ import type { EmbeddingClient, LlmClient } from "../llm/types";
 import { TenantPrismaService } from "../prisma/tenant-prisma.service";
 import { searchChunksWithIndex } from "../search/qdrant-search";
 import { VectorIndexService } from "../vector/vector-index.service";
-import { buildContext, buildUserPrompt, type Context, CONTEXT_TOKEN_BUDGET, MAX_OUTPUT_TOKENS, NOT_FOUND_ANSWER, RAG_TOP_K, REFUSAL_PHRASE, SYSTEM_PROMPT, TEMPERATURE } from "./prompt";
+import {
+  buildContext,
+  buildUserPrompt,
+  CITATION_RESPONSE_SCHEMA,
+  type Citation,
+  type Context,
+  CONTEXT_TOKEN_BUDGET,
+  MAX_OUTPUT_TOKENS,
+  NOT_FOUND_ANSWER,
+  parseInlineMarkers,
+  parseStructuredAnswer,
+  RAG_TOP_K,
+  type RawCitation,
+  REFUSAL_PHRASE,
+  SYSTEM_PROMPT,
+  TEMPERATURE,
+  verifyCitations,
+} from "./prompt";
 
 export type AnswerSource = {
   chunkId: string;
@@ -18,6 +35,8 @@ export type AnswerSource = {
   pageNumber: number;
   chunkIndex: number;
   score: number;
+  /** The passage text itself, so the source panel can show and highlight it (Milestone 8). */
+  text: string;
 };
 
 export type AnswerUsage = {
@@ -32,6 +51,9 @@ export type AnswerUsage = {
 export type AnswerResult = {
   answer: string;
   noAnswer: boolean;
+  /** [N] markers in `answer`, each checked against what was really sent to the model. Structural verification
+   * only, not a faithfulness check (Milestone 10 owns that): see `verifyCitations()` in prompt.ts. */
+  citations: Citation[];
   sources: AnswerSource[];
   usage: AnswerUsage;
 };
@@ -45,8 +67,8 @@ export type AnswerResult = {
 export type AnswerStreamEvent = { type: "status"; status: "retrieving" | "generating" } | { type: "delta"; text: string };
 
 /**
- * Question in, grounded answer out (Milestone 7). No citations formatting (Milestone 8), no conversation
- * history (Milestone 9): every call is answered alone, from this workspace's documents only.
+ * Question in, grounded and cited answer out (Milestones 7 and 8). No conversation history yet (Milestone 9):
+ * every call is answered alone, from this workspace's documents only.
  */
 @Injectable()
 export class RagService {
@@ -77,10 +99,14 @@ export class RagService {
       temperature: TEMPERATURE,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       thinking: "minimal",
+      responseSchema: CITATION_RESPONSE_SCHEMA,
     });
     const generationMs = Date.now() - generationStarted;
 
-    return this.toResult(result.text, retrieved.context, {
+    // A reply that does not match the schema (rare with a real, schema-enforced call, but the fake client used
+    // in tests does not enforce it) falls back to the raw text as a plain, uncited answer rather than losing it.
+    const structured = parseStructuredAnswer(result.text);
+    return this.toResult(structured?.answer ?? result.text, retrieved.context, structured?.citations ?? [], {
       model: result.model,
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
@@ -93,6 +119,8 @@ export class RagService {
   /**
    * Same as `answer()`, streamed: yields each piece of the answer as it arrives (or the whole refusal at once,
    * for the zero-hits case, so the caller never has to special-case it), then returns the same AnswerResult.
+   * Citations are parsed out of the completed text (`parseInlineMarkers`), not declared by a schema: JSON
+   * cannot be safely parsed mid-stream, so this path relies on the `[N]` prompt convention instead.
    */
   async *answerStream(actor: WorkspaceAuth, question: string): AsyncGenerator<AnswerStreamEvent, AnswerResult> {
     yield { type: "status", status: "retrieving" };
@@ -119,7 +147,7 @@ export class RagService {
     const result = step.value;
     const generationMs = Date.now() - generationStarted;
 
-    return this.toResult(result.text, retrieved.context, {
+    return this.toResult(result.text, retrieved.context, parseInlineMarkers(result.text), {
       model: result.model,
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
@@ -147,16 +175,18 @@ export class RagService {
     return {
       answer: NOT_FOUND_ANSWER,
       noAnswer: true,
+      citations: [],
       sources: [],
       usage: { model: this.llm.model, inputTokens: null, outputTokens: null, thoughtTokens: null, retrievalMs, generationMs: 0 },
     };
   }
 
-  private toResult(text: string, context: Context, usage: AnswerUsage): AnswerResult {
+  private toResult(text: string, context: Context, rawCitations: RawCitation[], usage: AnswerUsage): AnswerResult {
     const answer = text.trim();
     return {
       answer,
       noAnswer: answer.startsWith(REFUSAL_PHRASE),
+      citations: verifyCitations(rawCitations, context),
       // Only the chunks that were actually shown to the model, never the full retrieved list: a source is
       // never claimed unless the model really was given it (context.used can drop the lowest-scoring hits).
       sources: context.used.map((h) => ({
@@ -166,6 +196,7 @@ export class RagService {
         pageNumber: h.pageNumber,
         chunkIndex: h.chunkIndex,
         score: h.score,
+        text: h.text,
       })),
       usage,
     };

@@ -82,7 +82,7 @@ export const STATUS_LABEL: Record<DocumentStatus, string> = {
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 export const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".txt"];
 
-// Milestone 7. Mirrors apps/api/src/rag/rag.service.ts's AnswerResult.
+// Milestones 7 and 8. Mirrors apps/api/src/rag/rag.service.ts's AnswerResult.
 export type AnswerSource = {
   chunkId: string;
   documentId: string;
@@ -91,6 +91,8 @@ export type AnswerSource = {
   chunkIndex: number;
   /** Cosine similarity to the question, 0 to 1. Not a confidence percentage: label it "similarity score". */
   score: number;
+  /** The passage text itself, so the source panel can show and highlight it. */
+  text: string;
 };
 
 export type AnswerUsage = {
@@ -102,10 +104,22 @@ export type AnswerUsage = {
   generationMs: number;
 };
 
+/**
+ * A [N] marker in the answer text (Milestone 8). `verified` is structural only: does `sourceIndex` name a
+ * passage the model was really given (`sources[sourceIndex - 1]`). It is never dropped for being unverified,
+ * per FRONTEND_RULES.md, only shown differently.
+ */
+export type Citation = {
+  marker: number;
+  sourceIndex: number;
+  verified: boolean;
+};
+
 export type AnswerResult = {
   answer: string;
   /** True when the model itself decided the documents do not answer the question. Not an error. */
   noAnswer: boolean;
+  citations: Citation[];
   /** Only the passages actually shown to the model, never more. Empty when noAnswer's reason is "nothing retrieved". */
   sources: AnswerSource[];
   usage: AnswerUsage;

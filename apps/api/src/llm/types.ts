@@ -5,6 +5,18 @@
 // and they count against maxOutputTokens: a model that thinks too long can return an empty answer.
 export type ThinkingSetting = "minimal" | "low" | "medium" | "high";
 
+// A small, provider-agnostic stand-in for a JSON schema (Milestone 8). Kept separate from the real Gemini
+// `Schema` type (which lives in the gemini/ folder) so this interface never depends on one provider's SDK.
+export type JsonSchemaType = "object" | "array" | "string" | "number" | "integer" | "boolean";
+
+export type JsonSchema = {
+  type: JsonSchemaType;
+  description?: string;
+  properties?: Record<string, JsonSchema>;
+  items?: JsonSchema;
+  required?: string[];
+};
+
 export type GenerateRequest = {
   system?: string;
   prompt: string;
@@ -12,6 +24,12 @@ export type GenerateRequest = {
   maxOutputTokens?: number;
   /** Defaults to "minimal". RAG answers rarely need more, and it keeps runs cheap and repeatable. */
   thinking?: ThinkingSetting;
+  /**
+   * Forces the reply to match this shape (Milestone 8). Only meaningful for `generate()`: the JSON is not
+   * valid until the whole object has arrived, so a caller that needs to stream words to a browser cannot use
+   * this and relies on a prompt convention instead (see `rag/prompt.ts`'s marker parsing).
+   */
+  responseSchema?: JsonSchema;
 };
 
 export type GenerateResult = {

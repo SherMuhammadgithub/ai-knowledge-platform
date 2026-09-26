@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { estimateTokens } from "../src/chunking";
-import { buildContext, buildUserPrompt, CONTEXT_TOKEN_BUDGET, RAG_TOP_K, REFUSAL_PHRASE, SYSTEM_PROMPT, type ContextChunk } from "../src/rag/prompt";
+import {
+  buildContext,
+  buildUserPrompt,
+  CONTEXT_TOKEN_BUDGET,
+  type Context,
+  type ContextChunk,
+  parseInlineMarkers,
+  parseStructuredAnswer,
+  RAG_TOP_K,
+  REFUSAL_PHRASE,
+  SYSTEM_PROMPT,
+  verifyCitations,
+} from "../src/rag/prompt";
 
 const hit = (over: Partial<ContextChunk> = {}): ContextChunk => ({
   score: 0.7,
@@ -69,5 +81,71 @@ describe("the constants that shape a call", () => {
 
   it("ties the retrieval depth to the evaluation harness's K, on purpose", () => {
     expect(RAG_TOP_K).toBe(5);
+  });
+
+  it("tells the model the [N] marker convention", () => {
+    expect(SYSTEM_PROMPT).toMatch(/\[N\]/);
+  });
+});
+
+describe("parseStructuredAnswer (the non-streaming endpoint's structured reply)", () => {
+  it("reads the answer and its citations out of a valid reply", () => {
+    const reply = JSON.stringify({ answer: "Staff get 25 days [1].", citations: [{ marker: 1, sourceIndex: 1 }] });
+    expect(parseStructuredAnswer(reply)).toEqual({ answer: "Staff get 25 days [1].", citations: [{ marker: 1, sourceIndex: 1 }] });
+  });
+
+  it("returns null for text that is not JSON at all, so the caller can fall back to it as a plain answer", () => {
+    expect(parseStructuredAnswer("Staff get 25 days off.")).toBeNull();
+  });
+
+  it("returns null when a required field is missing", () => {
+    expect(parseStructuredAnswer(JSON.stringify({ answer: "Staff get 25 days off." }))).toBeNull();
+    expect(parseStructuredAnswer(JSON.stringify({ citations: [] }))).toBeNull();
+  });
+
+  it("returns null when a citation entry is malformed, rather than silently dropping it", () => {
+    expect(parseStructuredAnswer(JSON.stringify({ answer: "x", citations: [{ marker: "1", sourceIndex: 1 }] }))).toBeNull();
+    expect(parseStructuredAnswer(JSON.stringify({ answer: "x", citations: [{ marker: 1 }] }))).toBeNull();
+  });
+});
+
+describe("parseInlineMarkers (the streaming endpoint's marker parsing)", () => {
+  it("finds every [N] marker and treats N as the passage number, by convention", () => {
+    expect(parseInlineMarkers("Staff get 25 days [1]. The office closes at 6pm [2].")).toEqual([
+      { marker: 1, sourceIndex: 1 },
+      { marker: 2, sourceIndex: 2 },
+    ]);
+  });
+
+  it("does not duplicate a marker reused later in the text", () => {
+    expect(parseInlineMarkers("First point [1]. Related point, same source [1].")).toEqual([{ marker: 1, sourceIndex: 1 }]);
+  });
+
+  it("returns nothing for an answer with no markers", () => {
+    expect(parseInlineMarkers("Staff get 25 days off.")).toEqual([]);
+  });
+
+  it("sorts markers by number, regardless of the order they appear in the text", () => {
+    expect(parseInlineMarkers("Second first [2], then first [1].").map((c) => c.marker)).toEqual([1, 2]);
+  });
+});
+
+describe("verifyCitations", () => {
+  const context = (usedCount: number): Context => ({ text: "", used: Array.from({ length: usedCount }, () => ({}) as ContextChunk) });
+
+  it("marks a citation verified when its sourceIndex names a passage really in context", () => {
+    expect(verifyCitations([{ marker: 1, sourceIndex: 1 }], context(3))).toEqual([{ marker: 1, sourceIndex: 1, verified: true }]);
+  });
+
+  it("marks a citation unverified, but keeps it, when its sourceIndex is out of range", () => {
+    expect(verifyCitations([{ marker: 1, sourceIndex: 4 }], context(3))).toEqual([{ marker: 1, sourceIndex: 4, verified: false }]);
+  });
+
+  it("marks a citation unverified for index 0 or below, an invented reference no real numbering ever produces", () => {
+    expect(verifyCitations([{ marker: 1, sourceIndex: 0 }], context(3))[0].verified).toBe(false);
+  });
+
+  it("marks every citation unverified when nothing was retrieved", () => {
+    expect(verifyCitations([{ marker: 1, sourceIndex: 1 }], context(0))[0].verified).toBe(false);
   });
 });

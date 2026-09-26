@@ -1,7 +1,7 @@
 # Progress
 
-**Current milestone:** 7 (basic RAG) is done, confirmed live in the user's own browser 2026-09-23. Quizzes for Milestones 1 to 7 are unanswered in `docs/learning/QUIZ.md` and do not block anything.
-**Next action:** the user says go for Milestone 8 (Citations). Claude first teaches its concepts and writes its plan into a new milestone folder for the user to read and change, before any code.
+**Current milestone:** 8 (citations) is built and live-checked with real Gemini 2026-09-26, waiting on the user's own browser check (`docs/learning/milestones/M08-citations/checkpoint-b-results.md`). Quizzes for Milestones 1 to 7 are unanswered in `docs/learning/QUIZ.md` and do not block anything.
+**Next action:** the user does the browser check for Milestone 8 and reports back. Once confirmed, Milestone 8 closes out (topic note, quiz, docs) and Milestone 9 (conversational RAG) starts with concepts and a plan.
 
 ## Milestones
 
@@ -12,7 +12,7 @@
 - [x] 5. Chunking and embeddings (quiz pending)
 - [x] 6. Qdrant retrieval + mini eval (quiz pending)
 - [x] 7. Basic RAG (quiz pending)
-- [ ] 8. Citations
+- [ ] 8. Citations (built and live-checked, waiting on the user's browser check)
 - [ ] 9. Conversational RAG
 - [ ] 10. Full evaluation
 - [ ] 11. Hybrid search and reranking

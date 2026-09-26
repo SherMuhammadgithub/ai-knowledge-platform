@@ -3,7 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ENV } from "../src/config/config.module";
 import type { Env } from "../src/config/env";
 import { TenantPrismaService } from "../src/prisma/tenant-prisma.service";
-import { MAX_OUTPUT_TOKENS, NOT_FOUND_ANSWER, REFUSAL_PHRASE, SYSTEM_PROMPT, TEMPERATURE } from "../src/rag/prompt";
+import { CITATION_RESPONSE_SCHEMA, MAX_OUTPUT_TOKENS, NOT_FOUND_ANSWER, REFUSAL_PHRASE, SYSTEM_PROMPT, TEMPERATURE } from "../src/rag/prompt";
 import { RagService } from "../src/rag/rag.service";
 import { STORAGE, type StorageService } from "../src/storage/storage.service";
 import { agent, createTestApp, fixtures, registerUser, resetDb, resetStorage, type TestContext } from "./helpers";
@@ -107,7 +107,7 @@ describe("asking a question", () => {
     const res = await ask(a, "How many vacation days do I get?");
 
     expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({ answer: NOT_FOUND_ANSWER, noAnswer: true, sources: [] });
+    expect(res.body).toMatchObject({ answer: NOT_FOUND_ANSWER, noAnswer: true, citations: [], sources: [] });
     expect(res.body.usage).toMatchObject({ generationMs: 0, inputTokens: null, outputTokens: null, thoughtTokens: null });
     expect(ctx.llm.calls).toHaveLength(0); // no provider call paid for an answer we already knew
   });
@@ -156,6 +156,54 @@ describe("asking a question", () => {
     const dropped = kept === "handbook.txt" ? "kitchen.txt" : "handbook.txt";
     expect(ctx.llm.calls.at(-1)!.prompt).not.toContain(dropped);
   });
+
+  it("returns a source's passage text, so the source panel has something to show and highlight", async () => {
+    const { agent: a, me } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    await readyDocument(me.activeWorkspaceId!, "Full-time employees get 25 days of paid annual leave.");
+    ctx.llm.replies = ["Full-time staff get 25 days."];
+
+    const res = await ask(a, "How many days of annual leave do full-time employees get?");
+    expect(res.body.sources[0].text).toBe("Full-time employees get 25 days of paid annual leave.");
+  });
+
+  it("requests structured, schema-forced output, so the reply is a citation mapping rather than free text to parse", async () => {
+    const { agent: a, me } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    await readyDocument(me.activeWorkspaceId!, "Full-time employees get 25 days of paid annual leave.");
+
+    await ask(a, "How many days of annual leave do full-time employees get?");
+    expect(ctx.llm.calls.at(-1)!.responseSchema).toEqual(CITATION_RESPONSE_SCHEMA);
+  });
+
+  it("reads citations out of a structured reply, verifying each one against the passages really sent to the model", async () => {
+    const { agent: a, me } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    await readyDocument(me.activeWorkspaceId!, "Full-time employees get 25 days of paid annual leave.");
+    ctx.llm.replies = [
+      JSON.stringify({
+        answer: "Full-time staff get 25 days [1]. They also get a birthday off [2].",
+        citations: [
+          { marker: 1, sourceIndex: 1 }, // real: passage 1 was really sent
+          { marker: 2, sourceIndex: 2 }, // invented: only one passage was ever sent
+        ],
+      }),
+    ];
+
+    const res = await ask(a, "How many days of annual leave do full-time employees get?");
+    expect(res.body.answer).toBe("Full-time staff get 25 days [1]. They also get a birthday off [2].");
+    expect(res.body.citations).toEqual([
+      { marker: 1, sourceIndex: 1, verified: true },
+      { marker: 2, sourceIndex: 2, verified: false }, // kept, not dropped, just marked unverified
+    ]);
+  });
+
+  it("falls back to the raw reply as a plain, uncited answer when the structured reply cannot be parsed", async () => {
+    const { agent: a, me } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    await readyDocument(me.activeWorkspaceId!, "Full-time employees get 25 days of paid annual leave.");
+    ctx.llm.replies = ["Full-time staff get 25 days."]; // not JSON at all
+
+    const res = await ask(a, "How many days of annual leave do full-time employees get?");
+    expect(res.body.answer).toBe("Full-time staff get 25 days.");
+    expect(res.body.citations).toEqual([]);
+  });
 });
 
 describe("asking a question, streamed", () => {
@@ -193,7 +241,7 @@ describe("asking a question, streamed", () => {
     expect(events.map((e) => e.type)).toEqual(["status", "delta", "done"]);
     expect(events[0].data).toMatchObject({ status: "retrieving" });
     expect((events[1].data as { text: string }).text).toBe(NOT_FOUND_ANSWER);
-    expect(events[2].data).toMatchObject({ noAnswer: true, sources: [] });
+    expect(events[2].data).toMatchObject({ noAnswer: true, citations: [], sources: [] });
     expect(ctx.llm.calls).toHaveLength(0); // "generating" never happens: there was nothing to generate from
   });
 
@@ -210,6 +258,30 @@ describe("asking a question, streamed", () => {
     // with no .data, to the same listener a server-sent "error" event would reach. A real failure must stay
     // distinguishable from a dropped connection on the browser side.
     expect((events.at(-1)!.data as { message: string }).message).toContain("provider unavailable");
+  });
+
+  it("does not request structured output: JSON cannot be safely parsed mid-stream", async () => {
+    const { agent: a, me } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    await readyDocument(me.activeWorkspaceId!, "Full-time employees get 25 days of paid annual leave.");
+
+    await askStream(a, "How many days of annual leave do full-time employees get?");
+    expect(ctx.llm.calls.at(-1)!.responseSchema).toBeUndefined();
+  });
+
+  it("parses [N] markers out of the completed streamed text into the same verified citation shape", async () => {
+    const { agent: a, me } = await registerUser(ctx.app, "alice@a.com", "Alice");
+    await readyDocument(me.activeWorkspaceId!, "Full-time employees get 25 days of paid annual leave.");
+    // A real marker [1], an invented one [3] (only one passage was ever sent), and [1] repeated later.
+    ctx.llm.replies = ["Full-time staff get 25 days [1]. This is not in the handbook [3], but here it is again [1]."];
+
+    const events = parseSse((await askStream(a, "How many days of annual leave do full-time employees get?")).text);
+    const done = events.at(-1)!;
+    expect(done.data).toMatchObject({
+      citations: [
+        { marker: 1, sourceIndex: 1, verified: true },
+        { marker: 3, sourceIndex: 3, verified: false },
+      ],
+    });
   });
 
   it("validates the question the same way as the plain endpoint, before opening the stream", async () => {
