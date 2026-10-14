@@ -1,6 +1,8 @@
 # Checkpoint B results (2026-09-26)
 
-Citations, end to end: the backend (structured output on the plain endpoint, marker parsing on the streaming one, shared verification) and the frontend (citation chips, the source panel, the highlight). Everything below is built and tested. What is still open is your part: the visual browser check, in "Your part" below.
+Citations, end to end: the backend (structured output on the plain endpoint, marker parsing on the streaming one, shared verification) and the frontend (citation chips, the source panel, the highlight).
+
+> **Update, 2026-09-26:** you did the browser check and confirmed it works. Checkpoint B, and Milestone 8, are done.
 
 ## What was built
 

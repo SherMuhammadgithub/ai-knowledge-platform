@@ -1,6 +1,6 @@
 # Milestone 8: Citations
 
-**Status:** Checkpoints A and B built, tested, and live-checked with real Gemini (2026-09-26). Waiting on your browser check, see `checkpoint-b-results.md`.
+**Status:** done, 2026-09-26. Both checkpoints built, tested, live-checked with real Gemini, and confirmed in your own browser. Quiz open (never blocks anything). Next: Milestone 9 (conversational RAG).
 **Time budget:** about 8 hours (from `docs/PLAN.md`).
 
 ## Goal
@@ -43,7 +43,7 @@ Two checkpoints. I stop at each one, show you the result, and wait.
 - [x] B4. Tests: unit tests for the marker parser and the verifier (invented index, out-of-range index, duplicate markers, no markers at all), e2e tests for both endpoints proving `citations` comes back correctly shaped and that an invented citation is marked unverified, not silently removed or silently trusted. Deliberate-break testing on the new logic, same as every milestone so far: see `checkpoint-b-results.md`.
 - [x] B5. Frontend: citation chips inside the answer text, a source panel that opens on click, the highlight on the cited chunk (`bg-cite`), the distinct visual state for an unverified citation (`warning` token, not `destructive`, since an unverified citation is a gap to flag, not a failure to alarm about). Follows `FRONTEND_RULES.md` throughout.
 - [x] B6. Live check with real Gemini: both endpoints produced a correctly verified citation on the first try. An unverified citation was not observed live (the real model did not misbehave); it is proven by a fake-client test instead, documented honestly in `checkpoint-b-results.md`.
-- [ ] B7. Your browser check (visual states, both themes and widths, keyboard and Escape): see `checkpoint-b-results.md`, "Your part".
+- [x] B7. You checked it live in your own browser (2026-09-26) and confirmed it works.
 
 ## Decisions (change any of these at Checkpoint A)
 
@@ -75,7 +75,7 @@ One open question I don't have a firm recommendation on yet: if a non-refusal an
 ## Your part
 
 - ~~Confirm or change the decisions at Checkpoint A.~~ Done, confirmed with "go".
-- **Now:** the browser check in `checkpoint-b-results.md` (B7 above), since the assistant's browser tool cannot reach `localhost` in this environment.
+- ~~The browser check.~~ Done, 2026-09-26: confirmed working.
 
 ## After the milestone
 

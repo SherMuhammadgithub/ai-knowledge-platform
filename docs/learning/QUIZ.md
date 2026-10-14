@@ -25,6 +25,8 @@ How to use it:
 | Milestone 6 exercises (3) | not done |
 | Milestone 7 quiz (6 questions) | not answered |
 | Milestone 7 exercises (3) | not done |
+| Milestone 8 quiz (6 questions) | not answered |
+| Milestone 8 exercises (3) | not done |
 
 Background reading for each part is in the other files in this folder (Milestone 5 and 6 notes are inside their milestone folders): `09-production-ai.md` (Milestone 1), `tenant-isolation.md` (Milestones 2 and 3) `file-uploads.md` (Milestone 3), and `text-extraction.md` and `background-jobs.md` (Milestone 4).
 
@@ -744,4 +746,96 @@ A: the two calls go through the exact same `RagService` retrieval code, so the r
 B: with a small budget, `buildContext` keeps the first (best-scoring) chunk even if it alone is over budget, then stops before adding a second one that would pass it. Expect one source, maybe two, instead of up to five.
 
 C: retrieval almost always finds something (embedding similarity rarely returns literally nothing), so `sources` is usually non-empty even for a refused question, because those chunks were shown to the model and it chose not to use them. Milestone 6 found these near-miss scores often sit close to real answers' scores, which is exactly why a score alone cannot decide "I don't know."
+</details>
+
+---
+
+## Milestone 8: Citations
+
+Reading: `docs/learning/milestones/M08-citations/` (`concepts.md`, `citations.md`, and the Checkpoint B results). Nothing waits on your answers.
+
+### Quiz
+
+**1. The non-streaming `/ask` endpoint uses a real JSON schema (`responseSchema`) to get its citations. The streaming endpoint does not, even though it needs citations too. Why not?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+JSON is not valid until the whole object has been produced; a streaming reply sends words as they are generated, so there is no safe moment to parse partial JSON. The streaming endpoint instead relies on a prompt convention (`[N]` markers written directly into the flowing prose) and parses them out with a regex only once the full text has arrived. It is a weaker guarantee (the mapping is assumed by convention, not declared explicitly by the model), accepted specifically to keep Milestone 7's streaming code unchanged.
+</details>
+
+**2. A citation comes back `verified: true`. What exactly has been checked, and what has deliberately not been checked?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+Checked: the citation's `sourceIndex` names a passage that was really included in the context sent to the model (`context.used`), so it is not an invented or out-of-range number. Not checked: whether the passage actually supports the sentence it is attached to (faithfulness). That is a real evaluation problem, assigned on purpose to Milestone 10's LLM-judge harness, not attempted here.
+</details>
+
+**3. Why is an unverified citation shown in the UI, with a warning state, instead of just being removed from the answer?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+Silently dropping it would make the answer look more confident and trustworthy than it actually is, which is the opposite of what citations exist to do. `FRONTEND_RULES.md` states this directly: an unverified citation is shown as unverified, never silently dropped and never shown as valid.
+</details>
+
+**4. What happens if the non-streaming endpoint's structured reply is not valid JSON, or is missing a field?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+`parseStructuredAnswer()` returns `null` instead of throwing. `RagService.answer()` then falls back to treating the raw text as a plain, uncited answer: `citations` comes back empty, but the answer itself is not lost. This is also what kept every one of Milestone 7's original tests passing unchanged, since their fake replies are plain sentences, not JSON.
+</details>
+
+**5. The backend already returns a `citations` array. Why does the frontend run its own separate regex pass over the answer text, instead of just using that array directly to decide what to show?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+The `citations` array only says which markers exist and whether they are verified; it does not say *where* inside the answer text each `[N]` sits. The frontend has to find each marker's actual position in the text to know what to replace with a clickable chip and what to leave as plain prose around it. The backend regex (`parseInlineMarkers`) answers "which citations exist"; the frontend regex answers "where exactly do I put a chip instead of these bracket characters."
+</details>
+
+**6. The source panel highlights the entire cited chunk, not just the sentence the answer actually used from it. What would it take to highlight only that sentence, and why wasn't it built this milestone?**
+
+Your answer:
+
+<details>
+<summary>Answer key</summary>
+
+It would need matching the answer's wording against the passage's wording well enough to find the one supporting sentence, including when the answer paraphrases rather than quotes. That is a real natural-language matching problem, not a lookup. Highlighting the whole chunk is always correct (the model really was shown that whole passage) if less precise, and was the deliberate, budget-appropriate choice for this milestone.
+</details>
+
+### Exercises
+
+**A. Trace one citation end to end.** Ask a question that your demo documents answer, open the citation chip that appears, and confirm the passage shown in the source panel is really the numbered passage the system prompt would have labelled with that same number.
+
+Your result:
+
+**B. Try to produce a real unverified citation.** Ask a few different questions and see if you can get the real model to cite a number it was not actually given (for example, by asking something where five documents are relevant but the model might miscount). If you cannot, that itself is worth noting: it means the checkpoint's honest gap (only the fake-client test has ever exercised the unverified path) is still true.
+
+Your result:
+
+**C. Compare the two endpoints on the same question.** Ask the same question through `POST /ask` and through the Ask page (streaming). Are the citations identical in both? Should they be, given how differently each one is produced?
+
+Your result:
+
+<details>
+<summary>Hints</summary>
+
+A: `apps/api/src/rag/prompt.ts`'s `buildContext()` numbers passages in the order Qdrant ranked them, best score first; that numbering is what both `sourceIndex` and the source panel's position in the `sources` array refer to.
+
+B: real models are usually careful about citing only what they were given, especially with a strict grounding instruction already in the system prompt. A clean result here is a sign the prompt is working, not a sign nothing was tested; the automated test suite is what actually proves the unverified path works when it does happen.
+
+C: they should usually agree, since both endpoints retrieve and build context the exact same way and only differ in how the citation is extracted from the model's reply. A real difference would suggest the model behaved differently between a schema-forced call and a free-text one, which would be worth a closer look.
 </details>

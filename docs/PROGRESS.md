@@ -1,7 +1,7 @@
 # Progress
 
-**Current milestone:** 8 (citations) is built and live-checked with real Gemini 2026-09-26, waiting on the user's own browser check (`docs/learning/milestones/M08-citations/checkpoint-b-results.md`). Quizzes for Milestones 1 to 7 are unanswered in `docs/learning/QUIZ.md` and do not block anything.
-**Next action:** the user does the browser check for Milestone 8 and reports back. Once confirmed, Milestone 8 closes out (topic note, quiz, docs) and Milestone 9 (conversational RAG) starts with concepts and a plan.
+**Current milestone:** 8 (citations) is done, confirmed live in the user's own browser 2026-09-26. Quizzes for Milestones 1 to 8 are unanswered in `docs/learning/QUIZ.md` and do not block anything.
+**Next action:** the user says go for Milestone 9 (conversational RAG). Claude first teaches its concepts and writes its plan into a new milestone folder for the user to read and change, before any code.
 
 ## Milestones
 
@@ -12,7 +12,9 @@
 - [x] 5. Chunking and embeddings (quiz pending)
 - [x] 6. Qdrant retrieval + mini eval (quiz pending)
 - [x] 7. Basic RAG (quiz pending)
-- [ ] 8. Citations (built and live-checked, waiting on the user's browser check)
+- [x] 8. Citations (quiz pending)
+
+**Milestone 8 summary.** Claim-level citations replace Milestone 7's flat sources list: an inline `[N]` marker in the answer, checked against what was really sent to the model. Two techniques on purpose: real `responseSchema` structured output on the non-streaming endpoint (the model declares its own marker-to-passage mapping), regex marker parsing on the streaming endpoint (JSON cannot be parsed mid-stream). One shared verification step; an unverified citation is kept and shown, never dropped. The frontend turns markers into clickable chips opening a source panel with the whole cited chunk highlighted (sentence-level highlighting deferred, a real NLP problem outside this milestone's budget). Verification is structural only, not a faithfulness check: that is Milestone 10's job. 352 API tests (19 new), 8 deliberate breaks all caught (one only after a real gap was found and fixed: nothing had proved the zero-hits response carries `citations: []`). Both endpoints produced a correctly verified citation with real Gemini on the first live try; an unverified citation was never observed live, since the real model did not misbehave, so that path is proven by an automated test instead. No conversation history, no persistence, no dollar cost: same limits as Milestone 7, still deferred.
 - [ ] 9. Conversational RAG
 - [ ] 10. Full evaluation
 - [ ] 11. Hybrid search and reranking
@@ -282,3 +284,4 @@ All quiz questions and exercises live in `docs/learning/QUIZ.md`, with a place f
 - 2026-09-21 (M6): A document level check ("was the right guide in the top 3?") looked perfect on six questions and hid the real question: is the answer-bearing chunk first? Chunk 1 ranked first every time. Judge retrieval at the level of the answer, which is why questions are judged by quote.
 - 2026-09-21 (M6): Two stores cannot share a transaction. Keep one authoritative, write the other last, and provide a check that compares them.
 - 2026-09-21 (M6): Wrap errors from a second system so an HTTP status from it is not mistaken for a status from the first.
+- 2026-10-14: The root `README.md` was written early, at the user's request (it was scheduled for M14). Every number in it comes from the stored runs in `eval/runs/`, checked by running `eval:compare`, and every documented path and link was checked against the repository. The 352-test figure is quoted from the M8 record, not re-run (Docker was not running). `chunks:lab` takes a path relative to `apps/api`, which the first draft got wrong and the smoke run caught. Screenshots, a deployment section and updates for Milestones 9 to 13 stay open for M14.

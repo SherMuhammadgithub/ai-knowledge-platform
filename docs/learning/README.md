@@ -18,6 +18,7 @@ Short, practical notes on what we built and why. Written for you to revise from 
 | `milestones/M06-qdrant-retrieval-and-eval/05-retrieval.md` | Vector search with Qdrant, filtering during the search, exact versus approximate, two stores, what the measurements showed | Milestone 6 |
 | `milestones/M06-qdrant-retrieval-and-eval/07-evaluation.md` | Hit rate, MRR, judging by quote, stored runs, the traps, what our numbers show and do not show | Started (Milestone 6), grows in Milestone 10 |
 | `milestones/M07-basic-rag/04-rag.md` | Grounding, the system instruction, "I don't know" without a score, streaming, two real bugs found live and how they were diagnosed | Milestone 7 |
+| `milestones/M08-citations/citations.md` | Structured output vs. streaming, the [N] marker convention, structural verification, why unverified citations are shown not hidden | Milestone 8 |
 | `10-lessons-learned.md` | Things that went wrong and what we learned | Grows every milestone |
 
 Planned files that do not exist yet, created when the milestone that teaches them is done: `06-reranking` (11), `08-prompt-injection` (12). `05-retrieval` and `07-evaluation` exist from Milestone 6, `04-rag` from Milestone 7.
